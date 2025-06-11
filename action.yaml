@@ -1,0 +1,95 @@
+name: Reposcanner
+description: Reposcanner by codeward-io
+inputs:
+  event:
+    description: 'Event name'
+    required: true
+    type: string
+    default: ${{ github.event_name }}
+  repository:
+    description: 'Repository'
+    required: true
+    type: string
+    default: ${{ github.repository }}
+  current_branch:
+    description: 'Current branch'
+    required: true
+    type: string
+    default: ${{ github.ref }}
+  pr_number:
+    description: 'Pull request number'
+    required: false
+    type: string
+    default: ${{ github.event.number }}
+  token:
+    description: 'Github token'
+    required: true
+    type: string
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Checkout branch
+      if: ${{ inputs.event == 'pull_request' }}
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.current_branch }}
+        repository: ${{ inputs.repository }}
+        path: branch
+
+    - name: Checkout base
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.BASE_REF }}
+        repository: ${{ inputs.repository }}
+        path: main
+
+    - name: Pull Reposcanner image
+      shell: bash
+      run: |
+        docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
+        docker pull ghcr.io/codeward-io/reposcanner:latest
+  
+    - name: Create local storage
+      shell: bash
+      run: |
+        echo ${{ inputs.event }}
+        mkdir -p results
+        mkdir -p cache
+        echo ${UID}
+
+    - name: Run scanner with branch
+      if: ${{ inputs.event == 'pull_request' }}
+      shell: bash
+      run: |
+        docker run --rm --name reposcanner \
+        -v ${PWD}/main:/main:rw \
+        -v ${PWD}/branch:/branch:rw \
+        -v ${PWD}/results:/results:rw \
+        -v ${PWD}/cache:/.cache:rw \
+        --user ${UID} \
+        -e CONFIG_PATH=/branch/config.json \
+        -e GITHUB_TOKEN=${{ inputs.token }} \
+        -e GITHUB_OWNER=${{ github.repository_owner }} \
+        -e GITHUB_REPO=${{ github.event.repository.name }} \
+        -e GITHUB_PR_NR=${{ inputs.pr_number }} \
+        -e CI_EVENT="pr" \
+        -e CI=true \
+        ghcr.io/codeward-io/reposcanner
+
+    - name: Run scanner without branch
+      if: ${{ inputs.event != 'pull_request' }}
+      shell: bash
+      run: |
+        docker run --rm --name reposcanner \
+        -v ${PWD}/main:/main:rw \
+        -v ${PWD}/results:/results:rw \
+        -v ${PWD}/cache:/.cache:rw \
+        --user ${UID} \
+        -e CONFIG_PATH=/main/config.json \
+        -e GITHUB_TOKEN=${{ inputs.token }} \
+        -e GITHUB_OWNER=${{ github.repository_owner }} \
+        -e GITHUB_REPO=${{ github.event.repository.name }} \
+        -e CI_EVENT="main" \
+        -e CI=true \
+        ghcr.io/codeward-io/reposcanner
