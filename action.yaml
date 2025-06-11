@@ -48,7 +48,7 @@ runs:
       shell: bash
       run: |
         docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
-        docker pull ghcr.io/codeward-io/reposcanner:latest
+        docker pull ghcr.io/codeward-io/scan:latest
   
     - name: Create local storage
       shell: bash
@@ -75,7 +75,7 @@ runs:
         -e GITHUB_PR_NR=${{ inputs.pr_number }} \
         -e CI_EVENT="pr" \
         -e CI=true \
-        ghcr.io/codeward-io/reposcanner
+        ghcr.io/codeward-io/scan:latest
 
     - name: Run scanner without branch
       if: ${{ inputs.event != 'pull_request' }}
@@ -92,4 +92,4 @@ runs:
         -e GITHUB_REPO=${{ github.event.repository.name }} \
         -e CI_EVENT="main" \
         -e CI=true \
-        ghcr.io/codeward-io/reposcanner
+        ghcr.io/codeward-io/scan:latest
