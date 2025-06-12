@@ -1,4 +1,4 @@
-name: Reposcanner
+name: Codeward
 description: Reposcanner by codeward-io
 inputs:
   event:
