@@ -68,7 +68,6 @@ runs:
         -v ${PWD}/results:/results:rw \
         -v ${PWD}/cache:/.cache:rw \
         --user ${UID} \
-        -e CONFIG_PATH=/branch/config.json \
         -e GITHUB_TOKEN=${{ inputs.token }} \
         -e GITHUB_OWNER=${{ github.repository_owner }} \
         -e GITHUB_REPO=${{ github.event.repository.name }} \
@@ -86,7 +85,6 @@ runs:
         -v ${PWD}/results:/results:rw \
         -v ${PWD}/cache:/.cache:rw \
         --user ${UID} \
-        -e CONFIG_PATH=/main/config.json \
         -e GITHUB_TOKEN=${{ inputs.token }} \
         -e GITHUB_OWNER=${{ github.repository_owner }} \
         -e GITHUB_REPO=${{ github.event.repository.name }} \
