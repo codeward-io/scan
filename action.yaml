@@ -1,5 +1,5 @@
-name: Codeward-io Reposcanner
-description: Reposcanner by codeward-io
+name: Codeward-io Scan
+description: Scan action by codeward-io
 inputs:
   event:
     description: 'Event name'
@@ -44,7 +44,7 @@ runs:
         repository: ${{ inputs.repository }}
         path: main
 
-    - name: Pull Reposcanner image
+    - name: Pull Codeward scan image
       shell: bash
       run: |
         docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
@@ -62,7 +62,7 @@ runs:
       if: ${{ inputs.event == 'pull_request' }}
       shell: bash
       run: |
-        docker run --rm --name reposcanner \
+        docker run --rm --name codeward-scan \
         -v ${PWD}/main:/main:rw \
         -v ${PWD}/branch:/branch:rw \
         -v ${PWD}/results:/results:rw \
@@ -80,7 +80,7 @@ runs:
       if: ${{ inputs.event != 'pull_request' }}
       shell: bash
       run: |
-        docker run --rm --name reposcanner \
+        docker run --rm --name codeward-scan \
         -v ${PWD}/main:/main:rw \
         -v ${PWD}/results:/results:rw \
         -v ${PWD}/cache:/.cache:rw \
