@@ -87,4 +87,3 @@ Under the hood, the action executes a Docker container with mounts similar to:
 - Policies: [docs/policies/](docs/policies/)
 - Concepts: [docs/concepts/](docs/concepts/)
 - Configuration: [overview](docs/configuration/overview.md), [main config](docs/configuration/main-config.md)
-- AI governance: [overview](docs/ai-governance/overview.md), [best practices](docs/ai-governance/best-practices.md), [policy enforcement](docs/ai-governance/policy-enforcement.md), [security risks](docs/ai-governance/security-risks.md)
