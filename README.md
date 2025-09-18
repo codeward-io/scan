@@ -79,9 +79,12 @@ Under the hood, the action executes a Docker container with mounts similar to:
 - File permission issues on artifacts: The container runs as the host UID; ensure the workspace is writable by that user.
 
 ## Learn more
-- GitHub Actions install: `docs/installation/github-actions.md`
-- Run with Docker locally: `docs/installation/docker.md`
-- Starter configurations: `docs/examples/starter-configs.md`
-- Output formats: `docs/output/formats.md`
-- Policies: `docs/policies/`
-- Concepts and configuration: `docs/concepts/`, `docs/configuration/`
+- Introduction: [docs/intro.md](docs/intro.md)
+- Install via GitHub Actions: [docs/installation/github-actions.md](docs/installation/github-actions.md)
+- Run with Docker locally: [docs/installation/docker.md](docs/installation/docker.md)
+- Starter configurations: [docs/examples/starter-configs.md](docs/examples/starter-configs.md)
+- Output: [formats](docs/output/formats.md), [destinations](docs/output/destinations.md)
+- Policies: [docs/policies/](docs/policies/)
+- Concepts: [docs/concepts/](docs/concepts/)
+- Configuration: [overview](docs/configuration/overview.md), [main config](docs/configuration/main-config.md)
+- AI governance: [overview](docs/ai-governance/overview.md), [best practices](docs/ai-governance/best-practices.md), [policy enforcement](docs/ai-governance/policy-enforcement.md), [security risks](docs/ai-governance/security-risks.md)
