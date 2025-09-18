@@ -1,7 +1,3 @@
----
-sidebar_position: 1
----
-
 # Welcome to Codeward
 
 **Codeward** is a tool that helps you gain control over your codebase. This is done through comprehensive security scanning and reporting tool developed by codeward.io that performs vulnerability, license, package, and custom validation scanning of code repositories.
