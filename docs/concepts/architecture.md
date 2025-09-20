@@ -1,23 +1,5 @@
 # Architecture
 
-High-level flow from repository contents to policy-governed outputs.
-
-```mermaid
-graph TD
-  A[Repo Checkout] --> B[Scans]
-  B --> B1[Dependency / Vulnerability]
-  B --> B2[License]
-  B --> B3[Package Metadata]
-  B --> B4[Validation Checks]
-  B --> C[Result Sets (base vs head)]
-  C --> D[Diff Engine]
-  D --> E[Policy Evaluation]
-  E --> F[Grouping & Combination]
-  F --> G[Renderers]
-  G --> H[Destinations]
-  H --> I[Exit Code]
-```
-
 ## Stages
 ### 1. Scans
 Invokes underlying scanners / collectors (e.g., dependency metadata). Raw results separated per domain.
