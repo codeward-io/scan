@@ -1,6 +1,6 @@
 # Diff-Based Analysis
 
-Codeward focuses every policy and output on what a change introduces or alters— not historic backlog. A pull request (or feature branch) is compared to *main* and each record is classified so governance targets only net-new or modified risk.
+Codeward focuses every policy and output on what a change introduces or alters— not historic backlog—when producing PR-centric views. Baseline or scheduled scans still enumerate the full existing backlog so you can track and remediate legacy issues separately without polluting review noise. A pull request (or feature branch) is compared to *main* and each record is classified so governance targets only net-new or modified risk.
 
 > See also: [Glossary](./glossary.md) for term definitions and the [Policy System](./policy-system.md) for how actions are applied.
 
@@ -14,12 +14,12 @@ Codeward focuses every policy and output on what a change introduces or alters�
 ## Change Categories (Authoritative)
 | Category | Definition | Typical Action Pattern | Governance Rationale |
 |----------|------------|------------------------|----------------------|
-| new | Present only in branch | [block](./glossary.md#block) / [warn](./glossary.md#warn) | Net-new risk entering codebase (highest leverage gate) |
-| changed | Present in both but key attributes differ (e.g., version) | [warn](./glossary.md#warn) | Possible upgrade/downgrade or license/severity shift requiring review |
-| removed | Present only in main (eliminated by branch) | [info](./glossary.md#info) | Indicates remediation / improvement; never block |
-| existing | Present in both unchanged | [info](./glossary.md#info) / [warn](./glossary.md#warn) | Backlog context; avoid blocking velocity until ready to escalate |
+| new | Present only in branch | [block](./glossary.md#actions) / [warn](./glossary.md#actions) | Net-new risk entering codebase (highest leverage gate) |
+| changed | Present in both but key attributes differ (e.g., version) | [warn](./glossary.md#actions) | Possible upgrade/downgrade or license/severity shift requiring review |
+| removed | Present only in main (eliminated by branch) | [info](./glossary.md#actions) | Indicates remediation / improvement; never block |
+| existing | Present in both unchanged | [info](./glossary.md#actions) / [warn](./glossary.md#actions) | Backlog context; avoid blocking velocity until ready to escalate |
 
-(Glossary entries: [new](./glossary.md#new) · [changed](./glossary.md#changed) · [removed](./glossary.md#removed) · [existing](./glossary.md#existing))
+(Glossary entries: [new](./glossary.md#change-categories) · [changed](./glossary.md#change-categories) · [removed](./glossary.md#change-categories) · [existing](./glossary.md#change-categories))
 
 (Always express keys in the canonical order: `new`, `changed`, `removed`, `existing` for tables, examples, and action maps when ordering is shown.)
 

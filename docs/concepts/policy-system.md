@@ -1,6 +1,17 @@
+---
+id: policy-system
+title: Policy System
+description: "Core diff-aware policy model: actions per change category, rules, outputs, combining, and validation extensions."
+keywords:
+  - policy system
+  - diff-aware
+  - governance
+  - security
+  - configuration
+---
 # Policy System
 
-Codeward applies a consistent, diff‑aware policy model across all scan domains so you can codify governance (security, license, supply chain, structural validation) and enforce it pre‑merge.
+Codeward applies a consistent, diff‑aware policy model across all scan domains so you can codify governance (security, license, supply chain, structural validation) and enforce it pre‑merge. Diff focus suppresses backlog in PRs; separate baseline / scheduled scans still surface full existing inventories for remediation tracking.
 
 Canonical change category order: `new, changed, removed, existing` (see [Glossary](./glossary.md)). Formatting & naming conventions: [Style & Naming Guide](../configuration/style-naming-guide.md).
 
@@ -50,7 +61,7 @@ Validation policies add required keys: `type` (text|json|yaml|yml|filesystem) an
 ```
 Allowed operators (generic): `eq`, `ne`, `lt`, `gt`, `le`, `ge`, `contains`, `not_contains`, `hasPrefix`, `hasSuffix`, `regex` (depending on field semantics). Only fields from the underlying record type are valid.
 
-### Allowed Record Fields (Filter / Display) (Canonical)
+## Allowed Record Fields (Filter / Display) (Canonical) {#allowed-record-fields-filter--display}
 | Policy | Fields |
 |--------|--------|
 | vulnerability | VulnerabilityID, PkgID, PkgName, InstalledVersion, FixedVersion, Status, Severity, Relationship, Children, Parents, Targets |

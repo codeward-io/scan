@@ -106,7 +106,7 @@ All vulnerability, license, and package policies use filter rule objects:
 ```
 {"field":"<Field>","type":"<operator>","value":"<string>"}
 ```
-Multiple rules are ORed. Use separate policies when intents differ (improves output clarity). Operator list & allowed fields: see [Policy System](./policy-system.md#allowed-record-fields-filter--display-canonical).
+Multiple rules are ORed. Use separate policies when intents differ (improves output clarity). Operator list & allowed fields: see [Policy System](./policy-system.md#allowed-record-fields-filter--display).
 
 ## JSON Output
 All JSON outputs are arrays. Combined JSON destinations yield a single concatenated array (no wrapper object). See [Combining & Grouping](../output/combining-grouping.md) for rules & constraints.

@@ -109,7 +109,6 @@ Core Concepts
 - Diff Analysis (why only changed items): [docs/concepts/diff-analysis.md](docs/concepts/diff-analysis.md)
 - Policy System & Rule Model: [docs/concepts/policy-system.md](docs/concepts/policy-system.md)
 - Scanning Types: [docs/concepts/scanning-types.md](docs/concepts/scanning-types.md)
-- Configuration Architecture: [docs/concepts/configuration-architecture.md](docs/concepts/configuration-architecture.md)
 - Progressive Enforcement: [docs/operations/progressive-enforcement.md](docs/operations/progressive-enforcement.md)
 - Security / Trust Model: [docs/operations/security-trust-model.md](docs/operations/security-trust-model.md)
 - Performance & Caching: [docs/operations/performance-caching.md](docs/operations/performance-caching.md)

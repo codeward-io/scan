@@ -1,6 +1,6 @@
 # Validation Policies
 
-Validation policies assert security, compliance, and project hygiene rules against file contents (text, json, yaml), filesystem structure, or configuration values. They complement vulnerability / license / package policies by covering custom guardrails your org needs.
+Validation policies assert security, compliance, and project hygiene rules against file contents (text, json, yaml), filesystem structure, or configuration values. They complement vulnerability / license / package policies by covering custom guardrails your org needs. PR outputs emphasize new/changed violations; baseline scans can surface the full existing set for planned remediation.
 
 ## Overview
 Each validation policy evaluates one path pattern (file(s) or filesystem) using rule objects. Diff categories (`new | changed | removed | existing`) still drive actions (see semantics: [Diff-Based Analysis](../concepts/diff-analysis.md)), but validation policies focus on pass/fail of rule checks within the current head version. Use them to block introduction of insecure patterns while observing existing debt. Staged rollout patterns: [Progressive Enforcement](../operations/progressive-enforcement.md).

@@ -1,6 +1,6 @@
 # Package Policies
 
-Package policies track dependency inventory changes (additions, removals, version updates, relationship shifts) and let you gate risky supply‑chain drift while observing existing backlog.
+Package policies track dependency inventory changes (additions, removals, version updates, relationship shifts) and let you gate risky supply‑chain drift or gain the full registry of used packaged, versions and their relationships.
 
 ## Overview
 Diff‑aware package policies categorize each dependency record as `new | changed | removed | existing` relative to the main branch (or baseline scan). See diff semantics: [Diff-Based Analysis](../concepts/diff-analysis.md). Actions let you escalate only net‑new risk (e.g. block unexpected new direct additions) while routing legacy churn to non‑blocking outputs. Rollout strategies: see [Progressive Enforcement](../operations/progressive-enforcement.md).

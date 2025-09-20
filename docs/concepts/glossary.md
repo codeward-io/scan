@@ -2,10 +2,12 @@
 
 Canonical definitions to reduce ambiguity.
 
-## Actions
+## Actions {#actions}
+<a id="info"></a><a id="warn"></a><a id="block"></a>
 `info | warn | block` – Policy result severities. `block` sets non-zero exit code if any blocking findings remain.
 
-## Change Categories
+## Change Categories {#change-categories}
+<a id="new"></a><a id="changed"></a><a id="removed"></a><a id="existing"></a>
 Order: `new, changed, removed, existing`.
 `new` – Introduced on this branch.
 `changed` – Present in base; attributes differ (e.g., version, severity-relevant fields).

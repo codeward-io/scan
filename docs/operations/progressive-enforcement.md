@@ -1,6 +1,6 @@
 # Progressive Enforcement
 
-Adopt policy gating in safe phases to build confidence before blocking. Change categories referenced (`new`, `changed`, `removed`, `existing`) follow the canonical semantics in [Diff-Based Analysis](../concepts/diff-analysis.md).
+Adopt policy gating in safe phases to build confidence before blocking. Change categories referenced (`new`, `changed`, `removed`, `existing`) follow the canonical semantics in [Diff-Based Analysis](../concepts/diff-analysis.md). Maintain a separate baseline/backlog during all phases to monitor existing debt trajectory without surfacing it in PR noise.
 
 ## Phase Table
 | Phase | Rule Actions | Purpose |

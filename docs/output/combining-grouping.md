@@ -1,6 +1,6 @@
 # Combining & Grouping
 
-Central reference for merging outputs and grouping findings. Canonical change category order: `new, changed, removed, existing` (see [Style & Naming Guide](../configuration/style-naming-guide.md)).
+Central reference for merging outputs and grouping findings. Canonical change category order: `new, changed, removed, existing` (see [Style & Naming Guide](../configuration/style-naming-guide.md)). Use separate combined destinations to differentiate PR-focused deltas from full backlog inventories (e.g., one markdown PR comment + one JSON file with all categories).
 
 ## Combining Outputs
 Multiple policy outputs can target one destination. A combined set is defined by identical (destination, format) with `combined:true` on each member.

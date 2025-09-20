@@ -1,6 +1,6 @@
 # License Policies
 
-Govern software composition license risk (prohibited / reciprocal / high‑risk categories) with diff‑aware policies that block net‑new problematic licenses while observing existing backlog.
+Govern software composition license risk (prohibited / reciprocal / high‑risk categories) with diff‑aware policies that block net‑new problematic licenses or display existing issues.
 
 ## Overview
 License policies filter detected package licenses and apply actions per change category (`new | changed | removed | existing`). Use multiple focused policies (e.g., block GPL, observe LGPL) to progressively tighten compliance without stalling delivery. See [Progressive Enforcement](../operations/progressive-enforcement.md) for staged rollout patterns. Canonical change semantics: [Diff-Based Analysis](../concepts/diff-analysis.md).
