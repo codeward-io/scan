@@ -1,8 +1,3 @@
----
-title: Scanning Types
-description: Unified vulnerability, license, package, and validation scanning domains feeding a single diff-aware policy and output model.
----
-
 # Scanning Types
 
 Codeward unifies four scan domains under one **diff + policy** model. Each produces structured records classified as `new`, `changed`, `removed`, or `existing` (see [Diff-Based Analysis](./diff-analysis.md) and [Glossary](./glossary.md)). Policies then apply `info | warn | block` actions per category (see [Glossary](./glossary.md#actions)) and route findings to outputs. Style conventions: [Style & Naming Guide](../configuration/style-naming-guide.md).

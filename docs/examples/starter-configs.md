@@ -1,8 +1,3 @@
----
-title: Starter Configurations
-description: Opinionated, progressive, diff-aware starter policies for adopting Codeward with minimal noise and safe incremental enforcement.
----
-
 # Starter Configurations
 
 Opinionated starting points for adopting Codeward with progressive, diff‑aware enforcement. Copy, trim, or extend — keep each policy focused.

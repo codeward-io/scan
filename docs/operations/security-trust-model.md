@@ -1,8 +1,3 @@
----
-title: Security & Trust Model
-description: Data handling, permissions, network egress, and threat considerations for running Codeward in CI.
----
-
 # Security & Trust Model
 
 Transparency for security reviewers and platform owners.

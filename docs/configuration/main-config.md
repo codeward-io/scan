@@ -1,15 +1,3 @@
----
-id: main-config-reference
-title: Main Config Reference (config.json)
-description: Authoritative diff-aware policy configuration schema: global flags, policy arrays, rules, outputs, validation differences.
-keywords:
-  - config
-  - policy
-  - schema
-  - diff-aware
-  - governance
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/configuration/main-config.md -->
 # Main Config Reference (`config.json`)
 
 Authoritative reference for the versioned Codeward policy file. For an orientation guide see: [Configuration Overview](./overview.md). For deeper field/operator definitions see: [Policy System](../concepts/policy-system.md). Style conventions: [Style & Naming Guide](./style-naming-guide.md).

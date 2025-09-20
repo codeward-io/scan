@@ -1,15 +1,3 @@
----
-id: policy-system
-title: Policy System
-description: Core diff-aware policy model: actions per change category, rules, outputs, combining, and validation extensions.
-keywords:
-  - policy system
-  - diff-aware
-  - governance
-  - security
-  - configuration
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/concepts/policy-system.md -->
 # Policy System
 
 Codeward applies a consistent, diff‑aware policy model across all scan domains so you can codify governance (security, license, supply chain, structural validation) and enforce it pre‑merge.

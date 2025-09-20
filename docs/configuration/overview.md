@@ -1,7 +1,3 @@
----
-title: Configuration Overview
-description: High-level overview of the diff-aware Codeward config model and policy structure.
----
 # Configuration Overview
 
 Codeward configuration turns governance into code: a single JSON file (`config.json`) declaring policies (vulnerability, license, package, validation), actions per change category (`new | changed | removed | existing` – see [Glossary](../concepts/glossary.md#change-categories)), and outputs. Runtime context (repository mounts, event type, GitHub metadata) is supplied via environment variables—kept intentionally outside the versioned policy file.

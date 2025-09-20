@@ -1,8 +1,3 @@
----
-title: Troubleshooting & FAQ
-description: Central solutions for common setup, diff classification, and output configuration issues in Codeward.
----
-
 # Troubleshooting & FAQ
 
 Centralized solutions for common setup and policy issues.

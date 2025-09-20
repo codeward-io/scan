@@ -1,8 +1,3 @@
----
-title: Docker Installation
-description: Run Codeward via Docker in any CI to perform diff-aware vulnerability, license, package, and validation scans with reproducible, cached execution.
----
-
 # Docker Installation
 
 Run **Codeward** via Docker for a consistent, reproducible scanning environment across any CI system (GitHub Actions, GitLab, Jenkins, local dev). Use Docker when you need tighter control over dependency installs, caching, or custom orchestration.

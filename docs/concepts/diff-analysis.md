@@ -1,9 +1,3 @@
----
-title: Diff-Based Analysis
-description: Diff-based classification (new | changed | removed | existing) that scopes Codeward policies & outputs to only net-new or modified risk.
-keywords: diff-based analysis, codeward, policy, output, net-new risk, modified risk
----
-
 # Diff-Based Analysis
 
 Codeward focuses every policy and output on what a change introduces or alters— not historic backlog. A pull request (or feature branch) is compared to *main* and each record is classified so governance targets only net-new or modified risk.

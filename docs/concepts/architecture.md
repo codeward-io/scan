@@ -1,14 +1,3 @@
----
-id: architecture
-title: Architecture
-description: Flow from scans through diff engine and policy evaluation to combined outputs and destinations.
-keywords:
-  - architecture
-  - diff engine
-  - policy evaluation
-  - outputs
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/concepts/architecture.md -->
 # Architecture
 
 High-level flow from repository contents to policy-governed outputs.

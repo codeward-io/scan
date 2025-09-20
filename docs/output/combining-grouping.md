@@ -1,7 +1,3 @@
----
-title: Combining & Grouping
-description: Canonical rules for merging policy outputs and grouping findings across diff-aware reports.
----
 # Combining & Grouping
 
 Central reference for merging outputs and grouping findings. Canonical change category order: `new, changed, removed, existing` (see [Style & Naming Guide](../configuration/style-naming-guide.md)).

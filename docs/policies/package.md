@@ -1,15 +1,3 @@
----
-id: package-policies
-title: Package Policies
-description: Diff-aware, policy-driven dependency change gating: control new, changed, removed, existing packages with progressive enforcement & combined JSON inventory.
-keywords:
-  - dependencies
-  - supply chain
-  - package policies
-  - diff-aware
-  - progressive enforcement
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/policies/package.md -->
 # Package Policies
 
 Package policies track dependency inventory changes (additions, removals, version updates, relationship shifts) and let you gate risky supply‑chain drift while observing existing backlog.

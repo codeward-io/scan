@@ -1,8 +1,3 @@
----
-title: Progressive Enforcement
-description: Phased approach for safely rolling out diff-aware policy gating from observation to blocking net-new critical risk.
----
-
 # Progressive Enforcement
 
 Adopt policy gating in safe phases to build confidence before blocking. Change categories referenced (`new`, `changed`, `removed`, `existing`) follow the canonical semantics in [Diff-Based Analysis](../concepts/diff-analysis.md).

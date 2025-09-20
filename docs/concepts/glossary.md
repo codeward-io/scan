@@ -1,14 +1,3 @@
----
-id: glossary
-title: Glossary
-description: Canonical definitions for diff-aware policy concepts: actions, change categories, combined outputs, grouping, progressive enforcement.
-keywords:
-  - glossary
-  - terminology
-  - diff-aware
-  - policies
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/concepts/glossary.md -->
 # Glossary
 
 Canonical definitions to reduce ambiguity.

@@ -1,15 +1,3 @@
----
-id: style-naming-guide
-title: Style & Naming Guide
-description: Canonical style rules: change category order, actions formatting, capitalization, severity ordering, combined JSON semantics.
-keywords:
-  - style
-  - naming
-  - conventions
-  - documentation
-  - governance
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/configuration/style-naming-guide.md -->
 # Style & Naming Guide
 
 Consistency rules for documentation and configuration examples.

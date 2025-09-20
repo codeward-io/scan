@@ -1,8 +1,3 @@
----
-title: Performance & Caching
-description: Techniques to speed Codeward scans using caching, scope focus, and configuration tuning.
----
-
 # Performance & Caching
 
 Guidance for faster feedback cycles.

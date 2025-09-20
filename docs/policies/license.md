@@ -1,9 +1,3 @@
----
-title: License Policies
-description: Configure diff-aware license policies to block net-new prohibited or high-risk licenses while observing existing backlog.
-keywords: license policies, software composition, license risk, diff-aware policies, compliance, AI governance, policy schema, rule patterns, output strategy, exceptions, best practices
----
-
 # License Policies
 
 Govern software composition license risk (prohibited / reciprocal / high‑risk categories) with diff‑aware policies that block net‑new problematic licenses while observing existing backlog.

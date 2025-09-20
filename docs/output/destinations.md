@@ -1,7 +1,3 @@
----
-title: Output Destinations
-description: Route diff-aware policy outputs to PR comments, issues, files, or logs with consistent change category filtering.
----
 # Output Destinations
 
 Where rendered outputs go. For formatting & templates see: [Output Formats](./formats.md). Combining semantics: [Combining & Grouping](./combining-grouping.md).

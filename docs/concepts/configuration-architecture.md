@@ -1,7 +1,3 @@
----
-title: (Deprecated) Configuration Architecture
-description: This page has been replaced by Architecture and Configuration Overview.
----
 # Deprecated: Configuration Architecture
 
 This legacy page has been superseded by consolidated references:

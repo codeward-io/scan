@@ -1,7 +1,3 @@
----
-title: Output Formats
-description: Diff-aware policy output formats: markdown, HTML, and JSON arrays for deterministic automation.
----
 # Output Formats
 
 Authoritative reference for how policy outputs are rendered. Destinations (PR comment, issue, file, log) are covered separately: see [Output Destinations](./destinations.md).

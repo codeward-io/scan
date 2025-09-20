@@ -1,16 +1,3 @@
----
-id: intro
-title: Introduction
-description: Codeward diff-aware policy engine: govern vulnerabilities, licenses, packages & validation changes with deterministic markdown & JSON outputs before merge.
-keywords:
-  - codeward
-  - diff-aware
-  - policy engine
-  - vulnerabilities
-  - licenses
-  - validation
-  - supply chain security
----
 # Welcome to Codeward
 
 **Codeward** helps you govern code changes — human or AI‑generated — before they merge. It performs policy‑driven analysis (vulnerabilities, licenses, package diffs, and custom validations) with diff awareness so you focus only on what changed and the risk it introduces.

@@ -1,8 +1,3 @@
----
-title: GitHub Actions Integration
-description: Integrate Codeward into GitHub pull requests and main branch workflows for diff-aware policy gating with minimal setup.
----
-
 # GitHub Actions Integration
 
 Integrate **Codeward** into GitHub pull request and main branch workflows to govern code (human or AI‑generated) before merge. The published composite action `codeward-io/scan` wraps the container and performs event‑aware diff scanning automatically.

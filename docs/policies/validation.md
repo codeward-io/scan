@@ -1,15 +1,3 @@
----
-id: validation-policies
-title: Validation Policies
-description: Diff-aware file, config, and filesystem assertions to block insecure changes while observing existing debt with progressive enforcement.
-keywords:
-  - validation
-  - config policies
-  - diff-aware
-  - security
-  - progressive enforcement
----
-<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/policies/validation.md -->
 # Validation Policies
 
 Validation policies assert security, compliance, and project hygiene rules against file contents (text, json, yaml), filesystem structure, or configuration values. They complement vulnerability / license / package policies by covering custom guardrails your org needs.
