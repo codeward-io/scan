@@ -127,6 +127,57 @@ Centralizing rules in a diff‑aware config allows rapid, explainable enforcemen
 | Observability | Add at least one JSON output per critical policy |
 | Maintainability | Use multiple focused policies instead of a monolith |
 
+## Auto-Applied Default (When `config.json` Absent) {#default-config}
+If no `.codeward/config.json` is present, Codeward applies a built-in default configuration so first‑run scans still produce actionable output. This default is intentionally opinionated (it blocks high/critical — and medium for vulnerabilities — immediately). Customize with your own `config.json` if you prefer an initial non‑blocking rollout.
+
+Default (verbatim) snippet:
+```json
+{
+  "global": { "dependency_tree": false },
+  "vulnerability": [
+    {
+      "name": "Vulnerability issues",
+      "actions": { "new": "block", "existing": "warn", "removed": "info" },
+      "rules": { "severity": [
+        { "type": "eq", "value": "CRITICAL" },
+        { "type": "eq", "value": "HIGH" },
+        { "type": "eq", "value": "MEDIUM" }
+      ]},
+      "outputs": [
+        { "collapse": true, "format": "markdown", "fields": ["PkgID","VulnerabilityID","InstalledVersion","FixedVersion","Severity"], "destination": "git:pr", "title": "[codeward.io] Vulnerability Issues", "comment": "Please contact the security team to review the vulnerability issues.", "changes": ["new","removed","existing"], "template": "table" },
+        { "collapse": true, "format": "markdown", "fields": ["PkgID","VulnerabilityID","InstalledVersion","FixedVersion","Severity"], "destination": "git:issue", "title": "[codeward.io] Vulnerability Issues", "comment": "Please contact the security team to review the vulnerability issues.", "changes": ["existing"], "template": "table" }
+      ],
+      "dependency_tree": false
+    }
+  ],
+  "license": [
+    {
+      "name": "License issues",
+      "actions": { "new": "block", "existing": "warn", "removed": "info" },
+      "rules": { "severity": [
+        { "type": "eq", "value": "UNKNOWN" },
+        { "type": "eq", "value": "CRITICAL" },
+        { "type": "eq", "value": "HIGH" }
+      ]},
+      "outputs": [
+        { "format": "markdown", "collapse": true, "fields": ["Severity","PkgName","Category","Name"], "destination": "git:pr", "changes": ["existing","new","removed"], "comment": "Please contact the legal team to review the license issues.", "template": "table" },
+        { "format": "markdown", "collapse": true, "fields": ["Severity","PkgName","Category","Name"], "destination": "git:issue", "changes": ["existing"], "comment": "Please contact the legal team to review the license issues.", "template": "table" }
+      ]
+    }
+  ],
+  "package": [],
+  "validation": []
+}
+```
+Legacy rule shape note: The default uses an older nested `"rules": { "severity": [...] }` structure. When authoring your own config use the canonical array form:
+```json
+"rules": [
+  { "field": "Severity", "type": "eq", "value": "CRITICAL" },
+  { "field": "Severity", "type": "eq", "value": "HIGH" }
+]
+```
+To start in observe-only mode instead of blocking, create a minimal config overriding `actions` (e.g. `"new": "warn"`) as shown below.
+
 ## Example Minimal Config
 ```json
 {
