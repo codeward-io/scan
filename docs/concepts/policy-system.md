@@ -1,344 +1,249 @@
+---
+id: policy-system
+title: Policy System
+description: Core diff-aware policy model: actions per change category, rules, outputs, combining, and validation extensions.
+keywords:
+  - policy system
+  - diff-aware
+  - governance
+  - security
+  - configuration
+---
+<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/concepts/policy-system.md -->
 # Policy System
 
-## Overview
+Codeward applies a consistent, diff‑aware policy model across all scan domains so you can codify governance (security, license, supply chain, structural validation) and enforce it pre‑merge.
 
-Codeward uses a policy-based approach to define how security findings should be handled. Policies determine what actions to take when vulnerabilities, license issues, package changes, or validation failures are detected during diff analysis.
+Canonical change category order: `new, changed, removed, existing` (see [Glossary](./glossary.md)). Formatting & naming conventions: [Style & Naming Guide](../configuration/style-naming-guide.md).
 
-## Policy Types
+## Why Policies (AI & Velocity Context)
+High‑velocity and AI‑assisted changes can silently introduce vulnerable or prohibited components. Policies:
+- Express guardrails as code (repeatable, reviewable)
+- Reduce subjective review effort (objective actions per change type)
+- Allow gradual tightening (warn → block) without large rewrites
 
-Codeward supports four types of policies:
+## Supported Policy Types
+| Type | Source Data | Primary Use |
+|------|-------------|-------------|
+| vulnerability | Trivy | Govern CVE exposure (severity / fixed versions) |
+| license | Trivy | Restrict license categories / names (compliance posture) |
+| package | Trivy | Track dependency additions / removals / version shifts |
+| validation | Filesystem / content | Assert structural & content requirements (text/json/yaml/filesystem) |
 
-### Vulnerability Policies
-Handle security vulnerabilities detected by Trivy scanner:
-- **Severity-based rules**: Target specific vulnerability severities
-- **Action mapping**: Different responses for new vs existing vulnerabilities
-- **Output configuration**: Control where and how results are reported
+## Change Categories (Diff Mode)
+`new`, `changed`, `removed`, `existing` — canonical order (see [Glossary](./glossary.md)). Each policy defines an action for any subset (omitted keys ignored).
 
-### License Policies  
-Monitor software license compliance:
-- **License filtering**: Allow or block specific license types
-- **Dependency tracking**: Monitor license changes in dependencies
-- **Compliance reporting**: Generate license compliance reports
+## Actions {#actions}
+| Action | Effect |
+|--------|--------|
+| info | Record in output only |
+| warn | Record + non‑blocking signal |
+| block | Marks run as failing (non‑zero exit) if any section produced |
 
-### Package Policies
-Track package and dependency changes:
-- **Dependency monitoring**: Track additions, removals, and updates
-- **Version tracking**: Monitor package version changes
-- **Change classification**: Identify significant package modifications
+A policy need only define the change keys it cares about (others can be omitted).
 
-### Validation Policies
-Custom code validation rules:
-- **Pattern matching**: Search for specific patterns in code files
-- **File targeting**: Apply rules to specific file types or paths
-- **Custom messages**: Provide contextual feedback to developers
-
-## Policy Structure
-
-### Basic Policy Configuration
-Each policy type is configured as an array in your `config.json`:
-
-```json
+## Configuration Overview
+Top-level arrays in `config.json`: `vulnerability`, `license`, `package`, `validation` (any may be empty). Each element:
+```
 {
-  "vulnerability": [
-    {
-      "name": "Critical vulnerability blocking",
-      "disabled": false,
-      "actions": {
-        "new": "block",
-        "existing": "warn", 
-        "removed": "info",
-        "changed": "warn"
-      },
-      "rules": {
-        "severity": [{"type": "eq", "value": "CRITICAL"}]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr"
-        }
-      ]
-    }
-  ]
+  "name": "string",
+  "disabled": false,          // optional
+  "actions": {"new":"block","existing":"warn"},
+  "rules": [ {"field":"Severity","type":"eq","value":"CRITICAL"} ],
+  "outputs": [ { ...output config... } ],
+  ...validation only extras...
 }
 ```
+Validation policies add required keys: `type` (text|json|yaml|yml|filesystem) and `path` (target file / directory). Rule objects differ per validation type (see below).
 
-### Policy Components
-
-#### Name and Status
-- **name**: Descriptive identifier for the policy
-- **disabled**: Boolean flag to enable/disable the policy
-
-#### Action Configuration
-Different actions for each change type:
-- **new**: Action for newly introduced issues
-- **existing**: Action for pre-existing issues
-- **removed**: Action for resolved issues  
-- **changed**: Action for modified issues
-
-#### Available Actions
-- **block**: Fail the scan and prevent merge/deployment
-- **warn**: Log a warning but allow continuation
-- **info**: Informational logging only
-
-#### Rules Configuration
-Filter criteria for when the policy applies:
-- **severity**: Target specific vulnerability severities
-- **license**: Filter by license types
-- **package**: Target specific packages
-- **custom patterns**: For validation policies
-
-#### Output Configuration
-Control how results are reported:
-- **format**: markdown, json, html
-- **template**: table, text
-- **destination**: git:pr, git:issue, file:path, log:stdout
-
-## Policy Examples
-
-### Vulnerability Policy Examples
-
-#### Block Critical Vulnerabilities
-```json
-{
-  "vulnerability": [
-    {
-      "name": "Block critical vulnerabilities",
-      "disabled": false,
-      "actions": {
-        "new": "block",
-        "existing": "warn",
-        "removed": "info",
-        "changed": "warn"
-      },
-      "rules": {
-        "severity": [{"type": "eq", "value": "CRITICAL"}]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
-          "changes": ["new", "existing"]
-        }
-      ]
-    }
-  ]
-}
+### Filter Rule Object (non-validation policies)
 ```
-
-#### Warn on High Severity Issues
-```json
-{
-  "vulnerability": [
-    {
-      "name": "High severity vulnerability warnings",
-      "disabled": false,
-      "actions": {
-        "new": "warn",
-        "existing": "info",
-        "removed": "info",
-        "changed": "warn"
-      },
-      "rules": {
-        "severity": [{"type": "eq", "value": "HIGH"}]
-      },
-      "outputs": [
-        {
-          "format": "json",
-          "destination": "file:high-severity-report.json"
-        }
-      ]
-    }
-  ]
-}
+{"field": "<AllowedField>", "type": "op", "value": "string"}
 ```
+Allowed operators (generic): `eq`, `ne`, `lt`, `gt`, `le`, `ge`, `contains`, `not_contains`, `hasPrefix`, `hasSuffix`, `regex` (depending on field semantics). Only fields from the underlying record type are valid.
 
-### License Policy Examples
+### Allowed Record Fields (Filter / Display) (Canonical)
+| Policy | Fields |
+|--------|--------|
+| vulnerability | VulnerabilityID, PkgID, PkgName, InstalledVersion, FixedVersion, Status, Severity, Relationship, Children, Parents, Targets |
+| license | Severity, Category, PkgName, Name, Relationship, Children, Parents, Targets |
+| package | ID, Name, Version, Relationship, Children, Parents, Targets |
+| validation | Key, Type, Value, Reason, Passing, Path (display fields; filtering not applied in same manner) |
 
-#### Block GPL Licenses
-```json
-{
-  "license": [
-    {
-      "name": "Block GPL licenses",
-      "disabled": false,
-      "actions": {
-        "new": "block",
-        "existing": "warn",
-        "removed": "info",
-        "changed": "block"
-      },
-      "rules": {
-        "license": [{"type": "contains", "value": "GPL"}]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "text",
-          "destination": "git:issue",
-          "title": "License Compliance Issue Detected"
-        }
-      ]
-    }
-  ]
-}
-```
+## Rule Operators (Canonical) {#rule-operators}
+Generic operators (filtering across vulnerability, license, package domains): `eq`, `ne`, `lt`, `gt`, `le`, `ge`, `contains`, `not_contains`, `hasPrefix`, `hasSuffix`, `regex`.
 
-### Package Policy Examples
+Validation adds (by rule type):
+- Text / JSON / YAML / YML: same generic set above, plus context-specific usage of values.
+- JSON / YAML / YML additionally: `exists`, `not_exists` (for key presence checks) if using path-style rules (see Validation shapes below).
+- Filesystem: `exists`, `not_exists`.
 
-#### Track All Package Changes
-```json
-{
-  "package": [
-    {
-      "name": "Package change tracking",
-      "disabled": false,
-      "actions": {
-        "new": "info",
-        "existing": "info",
-        "removed": "info",
-        "changed": "info"
-      },
-      "outputs": [
-        {
-          "format": "json",
-          "destination": "file:package-changes.json"
-        }
-      ]
-    }
-  ]
-}
-```
+Summary:
+| Operator | Meaning |
+|----------|---------|
+| eq / ne | Equality / inequality |
+| lt / gt / le / ge | Numeric comparison (where applicable) |
+| contains / not_contains | Substring presence/absence |
+| hasPrefix / hasSuffix | String edge match |
+| regex | RE2-compatible regular expression |
+| exists / not_exists | Presence/absence (validation & filesystem) |
 
-### Validation Policy Examples
+(Operator applicability: see individual validation rule shape tables below.)
 
-#### Detect Hardcoded Secrets
+## Output Configuration
+(See also: [Combining & Grouping](../output/combining-grouping.md) for destination merge rules.)
+High-level description of output configuration options. Combined JSON groups produce a single concatenated array (no wrapper object; uniform format required).
+
+### Per Policy Output
+| Field | Purpose |
+|-------|---------|
+| format | markdown \| html \| json |
+| destination | file:&lt;path&gt; \| log:stdout \| log:stderr \| git:pr \| git:issue |
+| template | table \| text (ignored for json) |
+| fields | Subset of allowed display fields |
+| group_by | Array of fields to merge/group results |
+| changes | Limit change categories for this output |
+| combined | Combine multiple policy reports at same destination |
+| collapse | (markdown/html) make section collapsible |
+| title/comment | Presentation overrides |
+
+JSON outputs must omit `template`. Combined JSON groups must be uniformly JSON.
+
+## Validation Policy Rule Shapes
+| Validation Type | Rule Keys | Rule Types |
+|-----------------|----------|-----------|
+| text | type, value | regex, contains, not_contains, hasPrefix, hasSuffix, eq, ne |
+| json / yaml / yml | type, key, value | eq, ne, lt, gt, le, ge, contains, not_contains, hasPrefix, hasSuffix, regex, exists, not_exists |
+| filesystem | type, path | exists, not_exists |
+
+Example (text validation – disallow common secret tokens):
 ```json
 {
   "validation": [
     {
-      "name": "Hardcoded secrets detection",
-      "disabled": false,
-      "actions": {
-        "new": "block",
-        "existing": "warn",
-        "removed": "info",
-        "changed": "warn"
-      },
+      "name": "disallow-inline-secrets",
+      "type": "text",
+      "path": "app/config.env",        
+      "actions": {"new": "block"},
       "rules": [
-        {
-          "name": "Password patterns",
-          "type": "regex",
-          "pattern": "(password|secret|key)\\s*=\\s*[\"'][^\"']{8,}[\"']",
-          "file_pattern": "*.{go,js,py,java}",
-          "message": "Potential hardcoded secret detected"
-        }
+        {"type": "regex", "value": "(?i)(password|secret|apikey)\s*=\s*.+"}
       ],
       "outputs": [
-        {
-          "format": "markdown",
-          "template": "text",
-          "destination": "git:pr"
-        }
+        {"format": "markdown", "template": "text", "destination": "git:pr", "title": "Potential Inline Secrets"}
       ]
     }
   ]
 }
 ```
+(If targeting many files, invoke multiple validation policies or supply path patterns per implementation constraints.)
 
-## Policy Management
-
-### Disabling Policies
-Temporarily disable a policy without removing it:
-
+## Correct Example Policies
+### Vulnerability (Block Critical & High New; Warn Existing)
+_Example focuses on severity gating and mixed output formats._
 ```json
 {
   "vulnerability": [
     {
-      "name": "Temporary disabled policy",
-      "disabled": true,
-      "actions": {
-        "new": "block"
-      }
-    }
-  ]
-}
-```
-
-### Multiple Policies
-Configure multiple policies for different scenarios:
-
-```json
-{
-  "vulnerability": [
-    {
-      "name": "Critical vulnerabilities",
-      "disabled": false,
-      "actions": {"new": "block"},
-      "rules": {"severity": [{"type": "eq", "value": "CRITICAL"}]}
-    },
-    {
-      "name": "High vulnerabilities", 
-      "disabled": false,
-      "actions": {"new": "warn"},
-      "rules": {"severity": [{"type": "eq", "value": "HIGH"}]}
-    }
-  ]
-}
-```
-
-### Change-Specific Reporting
-Configure different outputs for different change types:
-
-```json
-{
-  "vulnerability": [
-    {
-      "name": "Security improvements tracker",
-      "disabled": false,
-      "actions": {
-        "removed": "info"
-      },
+      "name": "crit-high-vulns",
+      "actions": {"new": "block", "existing": "warn", "removed": "info", "changed": "warn"},
+      "rules": [
+        {"field": "Severity", "type": "eq", "value": "CRITICAL"},
+        {"field": "Severity", "type": "eq", "value": "HIGH"}
+      ],
       "outputs": [
-        {
-          "format": "markdown",
-          "template": "text", 
-          "destination": "file:security-improvements.md",
-          "changes": ["removed"],
-          "title": "Security Fixes in This Release"
-        }
+        {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new","existing"], "collapse": true},
+        {"format": "json", "destination": "file:/results/vuln-changes.json", "changes": ["new","removed","changed"]}
       ]
     }
   ]
 }
 ```
+### License (Block Introduction of Certain Categories)
+```json
+{
+  "license": [
+    {
+      "name": "no-copyleft-intro",
+      "actions": {"new": "block", "existing": "warn", "removed": "info"},
+      "rules": [
+        {"field": "Category", "type": "eq", "value": "Copyleft"}
+      ],
+      "outputs": [
+        {"format": "markdown", "template": "text", "destination": "git:pr", "title": "License Category Introductions", "changes": ["new"]}
+      ]
+    }
+  ]
+}
+```
+### Package (Track Additions Only)
+```json
+{
+  "package": [
+    {
+      "name": "new-deps-tracker",
+      "actions": {"new": "warn"},
+      "rules": [],
+      "outputs": [
+        {"format": "json", "destination": "file:/results/new-deps.json", "changes": ["new"], "fields": ["Name","Version","Relationship","Parents"]}
+      ]
+    }
+  ]
+}
+```
+### Validation (Filesystem Presence)
+```json
+{
+  "validation": [
+    {
+      "name": "require-security-policy",
+      "type": "filesystem",
+      "path": ".",  
+      "actions": {"new": "block"},
+      "rules": [
+        {"type": "exists", "path": "SECURITY.md"}
+      ],
+      "outputs": [
+        {"format": "markdown", "template": "table", "destination": "git:pr", "title": "Required Governance Files"}
+      ]
+    }
+  ]
+}
+```
+
+## Multiple Policies Per Type
+Combine granular policies instead of one large, hard‑to‑tune policy:
+- Separate severity bands
+- Separate license categories (copyleft vs restricted vs audit‑only)
+- Separate package introduction tracker vs remediation tracker
+
+## Progressive Enforcement
+Moved to dedicated page: see [Progressive Enforcement](../operations/progressive-enforcement.md) for phased rollout strategy and escalation guidance.
 
 ## Best Practices
+| Objective | Recommendation |
+|-----------|---------------|
+| Minimize noise | Limit PR outputs to `new` + `changed`; route `existing` elsewhere |
+| Show improvements | Dedicated output with `removed` only |
+| Justify blocking | Include remediation fields (e.g., `FixedVersion`) |
+| Automate dashboards | Emit JSON arrays (deterministic) |
+| Avoid config sprawl | Compose many small focused policies |
+| Safe rollout | Apply phases from Progressive Enforcement page |
 
-### Policy Design
-- **Start restrictive**: Begin with blocking critical issues, then adjust
-- **Use meaningful names**: Make policy purposes clear
-- **Group related rules**: Organize policies by severity or type
-- **Document decisions**: Include comments explaining policy choices
+## Common Mistakes & Fixes
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Validation policy rejected | Missing `type` or `path` | Add required keys |
+| Rules ignored | Wrong schema (object instead of array) | Use an array of rule objects | 
+| Combined JSON error | Mixed markdown + JSON in combined group | Use single format per combined destination |
+| Everything blocked | Overbroad rule + block on all change types | Narrow rules / limit `new` to block |
+| License rule ineffective | Used non-existent field name (e.g., "license") | Use `Name` or `Category` |
 
-### Change Type Strategy
-- **new**: Most restrictive actions to prevent regression
-- **existing**: Balanced approach to manage technical debt
-- **removed**: Informational to celebrate improvements
-- **changed**: Review-based to understand impact
+## Related Topics
+- [Diff Analysis](./diff-analysis.md)
+- [Output Formats](../output/formats.md)
+- [Main Config Reference](../configuration/main-config.md)
+- [Progressive Enforcement](../operations/progressive-enforcement.md)
+- [Style & Naming Guide](../configuration/style-naming-guide.md)
 
-### Output Configuration
-- **PR comments**: For immediate developer feedback
-- **Issue creation**: For tracking and follow-up
-- **File outputs**: For reports and metrics
-- **Log outputs**: For monitoring and alerting
-
-### Testing Policies
-Before deploying new policies:
-1. Test with representative code samples
-2. Validate with team on non-critical branches
-3. Monitor initial results and adjust as needed
-4. Document policy rationale for future reference
+---
+Next: review full configuration structure in the [Main Config Reference](../configuration/main-config.md).

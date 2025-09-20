@@ -1,307 +1,109 @@
-# License Policies
-
-License policies define how your system responds to license compliance issues detection to ensuring legal compliance and adherence to organizational license policies.
-
-### **Equality Operators**
-```json
-{
-  "severity": [
-    {"type": "eq", "value": "CRITICAL"},    // Equals
-    {"type": "ne", "value": "LOW"}          // Not equals
-  ]
-}
-```
-
-## 🎯 Overview
-
-License policies use comprehensive license detection to identify:
-
-- **License types** and categories (Forbidden, Restricted, Reciprocal, Notice, Permissive, Unencumbered, Unknown)
-- **License risk levels** with severity ratings (CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN)
-- **Unknown or missing licenses** in packages
-- **License violations** based on organizational policies
-
-## 📋 Policy Structure
-
-### **Basic License Policy**
-
-```json
-{
-  "license": [{
-    "name": "License compliance monitoring",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info",
-      "changed": "info"
-    },
-    "rules": {
-      "severity": [{"type": "eq", "value": "CRITICAL"}]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "fields": ["Name", "Category", "PkgName"],
-      "changes": ["new", "existing"]
-    }]
-  }]
-}
-```
-
-### **Policy Components**
-
-#### **1. Name and Description**
-```json
-{
-  "name": "License compliance policy",
-  "description": "Ensures all dependencies comply with organizational license requirements"
-}
-```
-
-#### **2. Policy Disabling**
-```json
-{
-  "disabled": false,  // Set to true to disable this policy
-  "name": "Policy name"
-}
-```
-
-Individual policies can be disabled by setting `"disabled": true`. When disabled, the policy is skipped during scanning and the disabled policy names are logged for transparency.
-
-#### **3. Actions Configuration**
-```json
-{
-  "actions": {
-    "new": "warn",      // Warn about new critical license issues
-    "existing": "info", // Track existing license issues
-    "removed": "info",  // Note license improvements
-    "changed": "info"   // Track license changes
-  }
-}
-```
-
-#### **4. Filtering Rules**
-```json
-{
-  "rules": {
-    "severity": [
-      {"type": "eq", "value": "CRITICAL"},
-      {"type": "eq", "value": "HIGH"}
-    ],
-    "name": [
-      {"type": "contains", "value": "GPL"},
-      {"type": "ne", "value": "MIT"}
-    ]
-  }
-}
-```
-
-## 🔍 Available Rule Fields
-
-### **License-Specific Fields**
-
-| Field | Description | Example Values |
-|-------|-------------|----------------|
-| `name` | License name | `MIT`, `Apache-2.0`, `GPL-3.0` |
-| `severity` | License risk level | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `UNKNOWN` |
-| `pkg_id` | Package identifier | `lodash@4.17.19`, `express@4.17.1` |
-| `pkg_name` | Package name only | `lodash`, `express`, `react` |
-
-## 🎛️ Rule Operators
-
-### **Equality Operators**
-```json
-{
-  "category": [
-    {"type": "eq", "value": "copyleft"},    // Equals
-    {"type": "ne", "value": "permissive"}   // Not equals
-  ]
-}
-```
-
-### **String Operators**
-```json
-{
-  "name": [
-    {"type": "contains", "value": "GPL"},      // Contains substring
-    {"type": "not_contains", "value": "MIT"},  // Does not contain
-    {"type": "hasPrefix", "value": "BSD"},     // Starts with
-    {"type": "hasSuffix", "value": "-3.0"},    // Ends with
-    {"type": "regex", "value": "^GPL-.*"}      // Regular expression
-  ]
-}
-```
-
-## 📊 Real-World Policy Examples
-
-### **Permissive License Only Policy**
-
-```json
-{
-  "license": [{
-    "name": "Permissive license enforcement",
-    "disabled": false,
-    "actions": {
-      "new": "block",
-      "existing": "warn",
-      "removed": "info"
-    },
-    "rules": {
-      "severity": [
-        {"type": "eq", "value": "CRITICAL"},
-        {"type": "eq", "value": "HIGH"},
-        {"type": "eq", "value": "UNKNOWN"}
-      ]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "🚫 Non-Permissive Licenses Detected",
-      "fields": ["Name", "Category", "PkgName"],
-      "changes": ["new", "existing"]
-    }]
-  }]
-}
-```
-
-### **High Risk License Awareness**
-
-```json
-{
-  "license": [{
-    "name": "High risk license tracking",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info"
-    },
-    "rules": {
-      "severity": [{"type": "eq", "value": "HIGH"}]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "📜 High Risk License Notice",
-      "comment": "These licenses require legal review and may have compliance requirements.",
-      "fields": ["Name", "Category", "PkgName"],
-      "changes": ["new"]
-    }]
-  }]
-}
-```
-
-### **Unknown License Detection**
-
-```json
-{
-  "license": [{
-    "name": "Unknown license investigation",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info"
-    },
-    "rules": {
-      "severity": [{"type": "eq", "value": "UNKNOWN"}]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "❓ Unknown Licenses Require Review",
-      "fields": ["Name", "Category", "PkgName"],
-      "changes": ["new", "existing"]
-    }]
-  }]
-}
-```
-
-## 📤 Output Customization
-
-### **Field Selection**
-
-**Essential Fields:**
-```json
-{
-  "fields": ["Name", "Category", "PkgName"]
-}
-```
-
-**Detailed Analysis:**
-```json
-{
-  "fields": ["Name", "Category", "PkgID", "PkgName"]
-}
-```
-
-### **Grouping Strategies**
-
-**By License Category:**
-```json
-{
-  "group_by": ["Category"],
-  "title": "Licenses by Category"
-}
-```
-
-**By Package:**
-```json
-{
-  "group_by": ["PkgName"],
-  "title": "Licenses by Package"
-}
-```
-
-## 🚨 License Compliance Best Practices
-
-### **License Categories**
-
-**Permissive Licenses (Recommended):**
-- MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC
-- Allow commercial use, modification, and distribution
-- Minimal compliance requirements
-
-**Restricted/Reciprocal Licenses (Review Required):**
-- GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.1
-- Require source code disclosure for derivatives
-- May impact commercial distribution
-
-**Proprietary Licenses (Avoid):**
-- Commercial licenses with restrictions
-- May require paid licensing or prohibit commercial use
-
-### **Exception Management**
-
-Exclude specific approved licenses:
-
-```json
-{
-  "license": [{
-    "name": "Standard license policy",
-    "actions": {"new": "block", "existing": "warn"},
-    "rules": {
-      "severity": [{"type": "eq", "value": "HIGH"}],
-      "name": [
-        {"type": "ne", "value": "LGPL-2.1"},  // Approved exception
-        {"type": "ne", "value": "BSD-2-Clause"}  // Approved permissive
-      ]
-    }
-  }]
-}
-```
-
+---
+title: License Policies
+description: Configure diff-aware license policies to block net-new prohibited or high-risk licenses while observing existing backlog.
+keywords: license policies, software composition, license risk, diff-aware policies, compliance, AI governance, policy schema, rule patterns, output strategy, exceptions, best practices
 ---
 
-**Next Steps:**
-- Configure [Package Policies](./package.md)
-- Set up [Custom Validation](./validation.md)
-- Learn about [Output Formats](../output/formats.md)
+# License Policies
+
+Govern software composition license risk (prohibited / reciprocal / high‑risk categories) with diff‑aware policies that block net‑new problematic licenses while observing existing backlog.
+
+## Overview
+License policies filter detected package licenses and apply actions per change category (`new | changed | removed | existing`). Use multiple focused policies (e.g., block GPL, observe LGPL) to progressively tighten compliance without stalling delivery. See [Progressive Enforcement](../operations/progressive-enforcement.md) for staged rollout patterns. Canonical change semantics: [Diff-Based Analysis](../concepts/diff-analysis.md).
+
+> Style & naming conventions (actions formatting `info | warn | block`, change category order) live in the [Style & Naming Guide](../configuration/style-naming-guide.md).
+
+## AI Governance Rationale
+Fast AI‑assisted dependency additions can quietly introduce reciprocal or prohibited licenses. Diff focus ensures only new or changed risky licenses block while legacy debt is surfaced separately for planned remediation.
+
+## Policy Schema (Subset)
+Full schema & operators: [Policy System](../concepts/policy-system.md). Allowed record fields: [Allowed Fields](../concepts/policy-system.md#allowed-record-fields-filter--display). Naming conventions: [Style & Naming Guide](../configuration/style-naming-guide.md).
+```json
+{
+  "name": "block-gpl",
+  "actions": {"new": "block", "existing": "warn"},
+  "rules": [ {"field": "Name", "type": "contains", "value": "GPL"} ],
+  "outputs": [
+    {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["Name","Category","Severity","PkgName"], "changes": ["new"], "collapse": true},
+    {"format": "json", "destination": "file:/results/license-new.json", "changes": ["new"], "combined": true}
+  ]
+}
+```
+Notes:
+- `rules` is an array (OR logic). No nested objects keyed by field names.
+- Omit unused change actions to reduce noise (canonical display order: new, changed, removed, existing).
+- Multiple license policies can target distinct categories / severities.
+
+## Common Rule Patterns
+### Block Reciprocal / Copyleft
+```json
+{"rules": [
+  {"field": "Category", "type": "eq", "value": "Reciprocal"},
+  {"field": "Category", "type": "eq", "value": "Forbidden"}
+]}
+```
+### Observe High Risk / Unknown
+```json
+{"rules": [
+  {"field": "Severity", "type": "eq", "value": "HIGH"},
+  {"field": "Severity", "type": "eq", "value": "CRITICAL"},
+  {"field": "Severity", "type": "eq", "value": "UNKNOWN"}
+]}
+```
+### Narrow to Package Patterns
+```json
+{"rules": [
+  {"field": "PkgName", "type": "hasPrefix", "value": "@internal/"},
+  {"field": "Name", "type": "contains", "value": "GPL"}
+]}
+```
+
+## Output Strategy
+| Goal | Pattern |
+|------|---------|
+| PR clarity | Table with Name, Category, Severity, PkgName for new/changed |
+| Backlog visibility | Issue / file destination with only `existing` |
+| Automation | JSON combined outputs for dashboards (see [Combining & Grouping](../output/combining-grouping.md)) |
+| Minimal noise | Exclude `removed` unless tracking cleanup KPI |
+
+Combined JSON semantics & grouping rules: [Combining & Grouping](../output/combining-grouping.md) (single concatenated array per destination).
+
+## Exceptions / Allowlisting
+Prefer inequality to exclude a single accepted license while still blocking class:
+```json
+"rules": [
+  {"field":"Name","type":"contains","value":"GPL"},
+  {"field":"Name","type":"ne","value":"GPL-2.0-with-classpath-exception"}
+]
+```
+Document rationale via output `comment` or change description.
+
+## Common Mistakes & Fixes
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Rules ignored | Used legacy nested object (e.g. `{ "rules": { "severity": [...] }}`) | Convert to array of rule objects |
+| Everything marked new | Missing main baseline (`/main`) or wrong `CI_EVENT` | Provide `/main` mount + set `CI_EVENT=pr` |
+| Relationship filter no effect | `dependency_tree` disabled | Enable `global.dependency_tree=true` |
+| Mixed JSON + markdown combine error | Combined outputs mix formats | Keep JSON groups pure or separate destinations |
+| Severity not displayed | Omitted from `fields` | Add `Severity` to `fields` list |
+
+## Best Practices
+| Goal | Recommendation |
+|------|---------------|
+| Progressive rollout | Start by blocking clearly prohibited (GPL/AGPL) only; expand after confidence |
+| Reduce review friction | Show only `new` + `changed` in PR; route `existing` to issue/file |
+| Explain decisions | Include `Category` + `Severity` in blocking outputs |
+| Maintainable config | Multiple narrow policies instead of one large rule list |
+| Automation | Produce a combined JSON export for compliance dashboards |
 
 ## Related Topics
-
-- [Package Policies](./package.md)
-- [Custom Validation](./validation.md)
-- [Output Formats](../output/formats.md)
+- [Policy System](../concepts/policy-system.md)
+- [Diff-Based Analysis](../concepts/diff-analysis.md)
+- [Progressive Enforcement](../operations/progressive-enforcement.md)
+- [Combining & Grouping](../output/combining-grouping.md)
 - [Configuration Overview](../configuration/overview.md)
+- [Main Config Reference](../configuration/main-config.md)
+- [Output Formats](../output/formats.md)
+
+---
+Next: manage dependency inventory with [Package Policies](./package.md).

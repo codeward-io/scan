@@ -1,70 +1,80 @@
+---
+id: intro
+title: Introduction
+description: Codeward diff-aware policy engine: govern vulnerabilities, licenses, packages & validation changes with deterministic markdown & JSON outputs before merge.
+keywords:
+  - codeward
+  - diff-aware
+  - policy engine
+  - vulnerabilities
+  - licenses
+  - validation
+  - supply chain security
+---
 # Welcome to Codeward
 
-**Codeward** is a tool that helps you gain control over your codebase. This is done through comprehensive security scanning and reporting tool developed by codeward.io that performs vulnerability, license, package, and custom validation scanning of code repositories.
+**Codeward** helps you govern code changes — human or AI‑generated — before they merge. It performs policy‑driven analysis (vulnerabilities, licenses, package diffs, and custom validations) with diff awareness so you focus only on what changed and the risk it introduces.
 
-## 🎯 What is Codeward?
+## Executive TL;DR
+- Diff-aware policies gate only net-new or modified risk (no legacy backlog noise in PRs).
+- Single configuration governs vulnerabilities, licenses, packages, and validations with `info | warn | block` actions.
+- Deterministic Markdown & JSON outputs (concatenated arrays) for both reviewers and automation.
 
-Codeward is a policy-driven security scanner that performs comprehensive analysis of your code repositories, detecting:
+## Why Codeward (Now)
+Modern development velocity and AI‑assisted generation increase the risk of silently adding vulnerable dependencies, incompatible licenses, or violating internal quality rules. Codeward inserts an automated, explainable governance layer into your workflow so risky changes are surfaced early and (if you wish) blocked.
 
-- **🔒 Security Vulnerabilities** - Using Trivy scanner for comprehensive vulnerability detection
-- **📜 License Compliance Issues** - Ensuring legal compliance across dependencies
-- **📦 Package Changes** - Tracking dependency modifications between repository states
-- **✅ Custom Validations** - Enforcing project-specific requirements through flexible validation rules
+## What Codeward Scans
+- **Vulnerabilities** (embedded Trivy) across packages
+- **Licenses** with severity / category for compliance posture
+- **Package Changes** (new / removed / changed / existing) between main and a feature branch
+- **Custom Validations** (text / JSON / YAML / filesystem existence rules) for project conventions
 
-## 🔧 How Codeward Works
+## How It Works (High Level)
+1. (PRs) Compare main vs feature branch → classify changes: new, changed, removed, existing (see [Diff-Based Analysis](./concepts/diff-analysis.md)).
+2. Apply configured policies (filters + actions per change type — see [Policy System](./concepts/policy-system.md)).
+3. Generate reports (Markdown, HTML, JSON array) — optionally grouped or combined.
+4. Deliver to destinations: files, logs, PR comment, or issue (event‑aware).
+5. Enforce gates: any section with a `block` action sets a non‑zero exit.
 
-Codeward performs **diff-based analysis** by comparing two repository states (typically main branch vs feature branch) to identify:
+## Key Benefits
+- **Diff‑Aware Noise Reduction**: Focus reviewers on the delta — not legacy backlog.
+- **Policy Gates**: Consistent, codified rules (security, license, validation) with `info | warn | block` actions per change category.
+- **AI Governance Support**: Surfaces license drift, new vulnerable libs, and broken conventions often introduced by automated code generation.
+- **Deterministic Outputs**: Stable JSON array schema for automation; clean Markdown/HTML for humans.
+- **Multi‑Destination Delivery**: PR comment, issue, logs, or files — configurable per policy.
+- **Composable Configuration**: Fine‑grained field selection, grouping, change filtering, combined reports.
 
-- **New vulnerabilities** introduced in your changes
-- **Removed dependencies** and their impact
-- **Changed packages** and version differences
-- **Policy violations** based on your configuration
+## Quick Start
+Choose an integration path:
+- **GitHub Actions**: Use the published action for automatic diff scans. See [GitHub Actions installation](./installation/github-actions.md).
+- **Docker (any CI)**: Run the container directly. See [Docker installation](./installation/docker.md).
 
-This focused approach allows security teams to concentrate on actual changes rather than reviewing entire codebases.
+Then explore policies and configuration:
+- Scanning concepts: [Scanning Types](./concepts/scanning-types.md)
+- Policy model: [Policy System](./concepts/policy-system.md)
+- Configuration overview: [Configuration Overview](./configuration/overview.md)
+- Main configuration reference: [Main Config](./configuration/main-config.md)
 
-## ✨ Key Features
+## Policy & Actions Overview
+Removed redundancy — canonical definitions live in [Diff-Based Analysis](./concepts/diff-analysis.md) and [Policy System](./concepts/policy-system.md).
 
-### 🔄 **Diff-Based Analysis**
-- Compares main branch vs feature branch states
-- Identifies exactly what changed and its security impact
-- Focuses security reviews on actual changes
+## Reporting
+- **Formats**: Markdown, HTML, JSON (uniform array schema)
+- **Templates** (non‑JSON): table or text
+- **Customization**: Select fields, group related findings, filter by change categories, combine multiple policies into one artifact.
+See: [Output Formats](./output/formats.md) and [Destinations](./output/destinations.md).
 
-### 📋 **Policy-Driven Approach**
-- Configurable rules for vulnerability, license, package, and validation policies
-- Flexible actions: `info`, `warn`, or `block` for different change types
-- Individual policies can be enabled or disabled as needed
+## Production Readiness Features
+- Deterministic ordering & severity handling
+- Caching for faster re‑runs (Trivy + internal cache)
+- Event‑aware GitHub posting (PR comment vs issue)
+- Clear non‑features (no SARIF, no auto‑remediation) to avoid surprise
 
-### 🚀 **CI/CD Integration**
-- Works with any CI/CD system supporting Docker or Go
-- Can be integrated into GitHub workflows
-- Automated reporting with multiple output destinations
-
-### 📊 **Flexible Reporting**
-- Multiple output formats: Markdown, HTML, JSON
-- Template options: table format or professional text format
-- Customizable fields, grouping, and filtering
-- Combined reports across multiple policy types
-- Professional templates for stakeholder communication
-
-### CI/CD Integration
-
-Codeward can be integrated into any CI/CD system. See our [installation guides](./installation/github-actions) or  detailed setup instructions.
-
-## 📖 What's Next?
-
-- **[Core Concepts](./concepts/scanning-types.md)** - Learn about scanning types and policy systems
-- **[Configuration](./configuration/overview.md)** - Configure policies for your security requirements
-- **[Policy System](./concepts/policy-system.md)** - Understand how policies work and how to customize them
-
-## 🏢 Production Ready
-
-Codeward scales from individual projects to enterprise environments:
-
-- **Policy-driven governance** with flexible configuration
-- **Multiple output destinations** for different stakeholders
-- **Template customization** for consistent reporting
-- **CI/CD integration** options for any development workflow
+## Next Steps
+1. Install via your preferred method (Actions or Docker).
+2. Start with starter configs: [Starter Configs](./examples/starter-configs.md).
+3. Tailor or add policies (license, vulnerability, package, validation).
+4. Add or tighten `block` actions to enforce standards once confident.
 
 ---
-
-**Ready to secure your development workflow?** Start with our [Docker setup guide](./installation/docker.md), [Github Action setup guide](./installation/github-actions.md) or explore [core concepts](./concepts/scanning-types.md).
+**Move from reactive reviews to proactive governance.** Begin with the [GitHub Actions guide](./installation/github-actions.md) or the [Docker guide](./installation/docker.md).

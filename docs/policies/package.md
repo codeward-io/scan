@@ -1,263 +1,127 @@
+---
+id: package-policies
+title: Package Policies
+description: Diff-aware, policy-driven dependency change gating: control new, changed, removed, existing packages with progressive enforcement & combined JSON inventory.
+keywords:
+  - dependencies
+  - supply chain
+  - package policies
+  - diff-aware
+  - progressive enforcement
+---
+<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/policies/package.md -->
 # Package Policies
 
-Package policies monitor dependency changes and track package management activities, helping identify supply chain risks and maintain healthy dependency ecosystems.
+Package policies track dependency inventory changes (additions, removals, version updates, relationship shifts) and let you gate risky supply‑chain drift while observing existing backlog.
 
-## 🎯 Overview
+## Overview
+Diff‑aware package policies categorize each dependency record as `new | changed | removed | existing` relative to the main branch (or baseline scan). See diff semantics: [Diff-Based Analysis](../concepts/diff-analysis.md). Actions let you escalate only net‑new risk (e.g. block unexpected new direct additions) while routing legacy churn to non‑blocking outputs. Rollout strategies: see [Progressive Enforcement](../operations/progressive-enforcement.md).
 
-Package policies track:
+> Style & naming conventions (actions formatting `info | warn | block`, canonical change order) live in the [Style & Naming Guide](../configuration/style-naming-guide.md).
 
-- **New package additions** to the dependency tree
-- **Package version changes** and updates
-- **Removed dependencies** and their impact
-- **Package relationship changes** (direct vs indirect)
+Canonical change category order everywhere: new, changed, removed, existing.
 
-## 📋 Policy Structure
+## Rationale / Principles
+| Principle | Why it matters |
+|-----------|----------------|
+| Diff focus | Reduces noise by showing only what changed in a PR. |
+| Progressive enforcement | Start with info/warn, graduate to block for unwanted patterns. |
+| Narrow, composable policies | Easier to reason about than one mega policy. |
+| Deterministic outputs | Stable automation inputs for inventory dashboards. |
+| AI governance | AI‑assisted bulk updates often add dependencies— block only unacceptable new risk, not pre‑existing backlog. |
 
-### **Basic Package Policy**
-
+## Schema (Subset)
+Full schema, operators, allowed fields: [Policy System](../concepts/policy-system.md). Naming guidance: [Style & Naming Guide](../configuration/style-naming-guide.md).
 ```json
 {
-  "package": [{
-    "name": "Package change monitoring",
-    "disabled": false,
-    "actions": {
-      "new": "info",
-      "existing": "info",
-      "removed": "warn",
-      "changed": "info"
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "fields": ["Name", "Version", "Relationship"],
-      "changes": ["new", "removed", "changed"]
-    }]
-  }]
+  "package": [
+    {
+      "name": "direct-additions-gate",
+      "actions": {"new": "warn", "removed": "info"},
+      "rules": [ {"field": "Relationship", "type": "eq", "value": "direct"} ],
+      "outputs": [
+        {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["Name","Version","Relationship"], "changes": ["new"]}
+      ]
+    }
+  ]
 }
 ```
+Notes:
+* `rules` is an array (logical OR). No legacy object form.
+* Display fields reference: [Allowed Record Fields](../concepts/policy-system.md#allowed-record-fields-filter--display).
+* No `Ecosystem` field (legacy / not implemented) — remove if present.
 
-### **Policy Components**
-
-#### **1. Name and Description**
+## Common Rule Patterns
+### Direct Dependencies Only
 ```json
-{
-  "name": "Package change tracking",
-  "description": "Monitors dependency changes and package management activities"
-}
+{"rules": [ {"field":"Relationship","type":"eq","value":"direct"} ]}
 ```
-
-#### **2. Policy Disabling**
+### Exclude Internal Namespace (inequality)
 ```json
-{
-  "disabled": false,  // Set to true to disable this policy
-  "name": "Policy name"
-}
+{"rules": [ {"field":"Name","type":"hasPrefix","value":"@"}, {"field":"Name","type":"ne","value":"@my-internal/core"} ]}
 ```
-
-Individual policies can be disabled by setting `"disabled": true. When disabled, the policy is skipped during scanning and the disabled policy names are logged for transparency.
-
-#### **3. Actions Configuration**
+### Focus on Packages With Children (graph context)
 ```json
-{
-  "actions": {
-    "new": "info",     // Track new packages
-    "existing": "info", // Note existing packages
-    "removed": "warn",  // Warn about removed packages
-    "changed": "info"   // Track version changes
-  }
-}
+{"rules": [ {"field":"Children","type":"contains","value":""} ]}
 ```
 
-## 🔍 Available Fields
-
-### **Package-Specific Fields**
-
-| Field | Description | Example Values |
-|-------|-------------|----------------|
-| `name` | Package name | `lodash`, `express`, `react` |
-| `version` | Package version | `4.17.19`, `1.2.3`, `^2.0.0` |
-| `relationship` | Dependency type | `direct`, `indirect` |
-| `ecosystem` | Package ecosystem | `npm`, `pypi`, `maven`, `go` |
-
-## 📊 Real-World Policy Examples
-
-### **New Package Review Policy**
-
+## Example Policies
+### New Package Review (PR emphasis)
 ```json
-{
-  "package": [{
-    "name": "New package review required",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info",
-      "changed": "info"
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "📦 New Packages Added",
-      "comment": "Please review these new dependencies for security and license compliance.",
-      "fields": ["Name", "Version", "Relationship"],
-      "changes": ["new"]
-    }]
-  }]
-}
+{"name":"new-package-review","actions":{"new":"warn"},
+ "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["Name","Version","Relationship"],"changes":["new"],"collapse":true}]}
 ```
-
-### **Dependency Removal Tracking**
-
+### Version Change Monitoring
 ```json
-{
-  "package": [{
-    "name": "Dependency removal monitoring",
-    "disabled": false,
-    "actions": {
-      "new": "info",
-      "existing": "info",
-      "removed": "block",
-      "changed": "info"
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "🗑️ Dependencies Removed",
-      "comment": "Dependency removal detected. Please verify this change is intentional.",
-      "fields": ["Name", "Version", "Relationship"],
-      "changes": ["removed"]
-    }]
-  }]
-}
+{"name":"version-changes","actions":{"changed":"info"},
+ "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["Name","Version"],"changes":["changed"]}]}
 ```
-
-### **Version Change Monitoring**
-
+### Block Direct Removals
 ```json
-{
-  "package": [{
-    "name": "Version change tracking",
-    "disabled": false,
-    "actions": {
-      "new": "info",
-      "existing": "info",
-      "removed": "info",
-      "changed": "warn"
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "🔄 Package Version Changes",
-      "fields": ["Name", "Version", "Relationship"],
-      "changes": ["changed"]
-    }]
-  }]
-}
+{"name":"protect-direct-removals","actions":{"removed":"block"},
+ "rules":[{"field":"Relationship","type":"eq","value":"direct"}],
+ "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["Name","Version","Relationship"],"changes":["removed"]}]}
 ```
-
-### **Direct Dependency Focus**
-
+### Combined JSON Inventory (automation)
 ```json
-{
-  "package": [{
-    "name": "Direct dependency monitoring",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "warn",
-      "changed": "info"
-    },
-    "rules": {
-      "relationship": [{"type": "eq", "value": "direct"}]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "🎯 Direct Dependency Changes",
-      "fields": ["Name", "Version", "Relationship"],
-      "changes": ["new", "removed", "changed"]
-    }]
-  }]
-}
+{"name":"inventory-json","actions":{"new":"info","changed":"info","removed":"info","existing":"info"},
+ "outputs":[{"format":"json","destination":"file:/results/package-inventory.json","combined":true}]}
 ```
 
-## 📤 Output Customization
+## Output Guidance
+| Goal | Pattern |
+|------|---------|
+| PR signal only | Markdown table, changes:["new","removed","changed"] |
+| Automation feed | Single combined JSON export (see [Combining & Grouping](../output/combining-grouping.md)) |
+| Separate backlog | Send existing → file:/ or git:issue; exclude from PR comment |
+| Reduced clutter | Omit fields not used in review decisions |
 
-### **Field Selection**
+Combined JSON semantics: a single concatenated array containing all selected records across all matching policies (not one file per policy).
 
-**Essential Fields:**
-```json
-{
-  "fields": ["Name", "Version", "Relationship"]
-}
-```
+## Best Practices
+| Objective | Recommendation |
+|-----------|---------------|
+| Gate risky drift | Start by blocking only new direct additions; monitor indirect via info outputs. |
+| Minimize noise | Exclude `existing` from PR markdown; route to JSON/file instead. |
+| Clarity | Keep each policy narrowly scoped (one intent). |
+| Governance narrative | Add short `comment` explaining rationale for blockers. |
+| Automation stability | Use combined JSON for ingestion; keep field set consistent. |
 
-**Detailed Analysis:**
-```json
-{
-  "fields": ["Name", "Version", "Relationship", "Ecosystem"]
-}
-```
+## Common Mistakes & Fixes
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Rules ignored | Legacy `{ "rules": {"name": [...] }}` form | Convert to array of `{field,type,value}` |
+| Unknown field `Ecosystem` | Field not implemented | Remove; use supported fields only |
+| Everything shows as new | Missing baseline mount or wrong CI_EVENT | Provide `/main` + set `CI_EVENT=pr` |
+| Mixed JSON/markdown in combined | Invalid format mixing | Use one format per combined destination |
+| Relationship filter no effect | Dependency tree not built | Enable `global.dependency_tree=true` if filtering graph fields |
 
-### **Grouping Strategies**
-
-**By Relationship:**
-```json
-{
-  "group_by": ["Relationship"],
-  "title": "Packages by Dependency Type"
-}
-```
-
-**By Package Name:**
-```json
-{
-  "group_by": ["Name"],
-  "title": "Changes by Package"
-}
-```
-
-## 📊 Package Management Best Practices
-
-### **Dependency Types**
-
-**Direct Dependencies:**
-- Packages explicitly declared in your project
-- Require careful review for security and licensing
-- Should be regularly updated and audited
-
-**Indirect/Transitive Dependencies:**
-- Dependencies of your direct dependencies
-- May introduce security vulnerabilities
-- Updates typically managed through direct dependency updates
-
-### **Change Types**
-
-**New Packages:**
-- Review for security vulnerabilities
-- Check license compatibility
-- Assess necessity and maintenance status
-
-**Removed Packages:**
-- Verify intentional removal
-- Check for breaking changes in dependent code
-- Update documentation and tests
-
-**Version Changes:**
-- Major version changes may require code updates
-- Minor/patch updates generally safer
-- Check changelog for breaking changes
+## Related / Next Steps
+* Harden composition risk with [License Policies](./license.md)
+* Add file & config assertions via [Validation Policies](./validation.md)
+* Learn schema details: [Policy System](../concepts/policy-system.md)
+* Plan staged rollout: [Progressive Enforcement](../operations/progressive-enforcement.md)
+* Control outputs: [Output Formats](../output/formats.md) & [Combining & Grouping](../output/combining-grouping.md)
 
 ---
-
-**Next Steps:**
-- Set up [Custom Validation](./validation.md)
-- Learn about [Output Formats](../output/formats.md)
-- Configure [Advanced Features](../configuration/overview.md)
-
-## Related Topics
-
-- [Custom Validation](./validation.md)
-- [Output Formats](../output/formats.md)
-- [Configuration Overview](../configuration/overview.md)
+AI Governance: Package policies prevent unnoticed AI‑generated dependency additions from introducing unreviewed risk; diff gating ensures only net‑new packages can block merges.

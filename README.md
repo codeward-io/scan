@@ -1,13 +1,12 @@
 # Codeward Scan — GitHub Action
 
-Scan your repository for policy, license, and security issues using Codeward.
-This action runs the Codeward scanner Docker image against your code for PRs and main branch builds, and posts results back to your repository.
+Scan your repository for policy, license, vulnerability, and validation issues before merge. Codeward provides diff-aware scanning (focus only on what changed) to govern AI-assisted and human code changes with transparent, deterministic outputs (Markdown / HTML / JSON).
 
 - Image: `ghcr.io/codeward-io/scan:latest`
 - Action: `codeward-io/scan@v0.0.1` (pin to a release)
 
 ## Quick start
-Create a workflow at `.github/workflows/codeward-io-scan.yml`:
+Create a workflow at `.github/workflows/codeward-io-scan.yml` (minimal configuration — all inputs have defaults):
 
 ```yaml
 name: Codeward
@@ -21,28 +20,30 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: read          # to checkout the repo (used by this action internally)
-      packages: read          # to pull the GHCR image
-      pull-requests: write    # to comment on PRs
-      issues: write           # to create/update issues when needed
+      contents: read          # checkout
+      packages: read          # pull GHCR image
+      pull-requests: write    # comment on PRs
+      issues: write           # (optional) create/update issues
     steps:
       - uses: codeward-io/scan@v0.0.1
-        # All inputs have sensible defaults from the GitHub context; no configuration required.
 ```
 
-That’s it. The action will:
-- Checkout your repository (base and head for PRs)
+The action will:
+- Checkout base (main) and head (PR) automatically
 - Pull the scanner image from GHCR
-- Run a scan (PR scans compare base vs. head; non-PR scans run on the default branch)
+- Run a diff-aware scan (PR: base vs head, non-PR: current default branch)
+- Produce findings and post a PR comment (if applicable)
+
+For a fuller onboarding (including optional dependency install patterns) see: `docs/quick-start.md`.
 
 ## Inputs
-All inputs have defaults and can be omitted in most setups. Override only if you need custom behavior.
+All inputs have sane defaults; override only when needed.
 
-- `event` (string, default: `${{ github.event_name }}`): Current workflow event.
-- `repository` (string, default: `${{ github.repository }}`): Owner/repo of the target repository.
-- `current_branch` (string, default: `${{ github.ref }}`): Ref of the branch being scanned.
-- `pr_number` (string, default: `${{ github.event.number }}`): Pull request number for PR scans.
-- `token` (string, default: `${{ github.token }}`): GitHub token used to pull the GHCR image and post results.
+- `event` (string, default: `${{ github.event_name }}`)
+- `repository` (string, default: `${{ github.repository }}`)
+- `current_branch` (string, default: `${{ github.ref }}`)
+- `pr_number` (string, default: `${{ github.event.number }}`)
+- `token` (string, default: `${{ github.token }}`)
 
 Example with explicit inputs:
 
@@ -57,33 +58,84 @@ Example with explicit inputs:
 ```
 
 ## How it works
-- On pull requests, the action checks out the base and head, mounts both into the container, and runs a diff-aware scan.
-- On non-PR events (push, workflow_dispatch), it scans the default branch checkout.
-- A cache directory is mounted to improve subsequent runs.
+- PR events: checks out base + head, runs diff-mode (reduced noise; changed items only)
+- Other events (push / workflow_dispatch): scans the checked-out default branch
+- Caching: a writable cache mount accelerates repeated scans
 
-Under the hood, the action executes a Docker container with mounts similar to:
-- `./main` (base), `./branch` (head, for PRs), `./results` (outputs), `./cache` (scanner cache)
+Container mounts (conceptual):
+- `./main` (base), `./branch` (PR head), `./results` (outputs), `./cache` (scanner cache)
+
+## Install dependencies for richer scanning (optional but recommended for license/vuln depth)
+If you need dependency resolution (e.g. license transitive discovery), perform manual checkouts + installs, then run the container yourself for full control.
+
+PR example:
+```yaml
+# (abbreviated) — full example in docs/installation/github-actions.md
+- uses: actions/checkout@v4
+  with:
+    ref: ${{ github.base_ref }}
+    path: main
+- uses: actions/checkout@v4
+  with:
+    ref: ${{ github.head_ref }}
+    path: branch
+# install deps in both trees, then run the container as shown in docs
+```
 
 ## Requirements
-- Runner: `ubuntu-latest` (or a self-hosted runner with Docker available)
-- Permissions (at minimum):
+- Runner: `ubuntu-latest` (or self-hosted with Docker)
+- Permissions (minimum):
   - `contents: read`
-  - `packages: read` (required to pull from `ghcr.io`)
-  - `pull-requests: write` (to post PR comments)
-  - `issues: write` (optional, for issue updates)
+  - `packages: read`
+  - `pull-requests: write` (for PR comments)
+  - `issues: write` (optional)
 
 ## Troubleshooting
-- GHCR pull fails (403/401): Ensure the job has `packages: read` and that the GITHUB_TOKEN has permission to read GHCR in your org.
-- No PR comments appear: Ensure `pull-requests: write` is granted. For forks, consider your security posture; `pull_request_target` runs with elevated permissions, use with care.
-- Docker not available: Use `ubuntu-latest` or install Docker on your self-hosted runner.
-- File permission issues on artifacts: The container runs as the host UID; ensure the workspace is writable by that user.
+- GHCR auth failures: ensure `packages: read` granted; token scopes allow GHCR pull.
+- Missing PR comment: confirm `pull-requests: write` and event is `pull_request` (not a fork with restricted token).
+- Docker unavailable: use a runner with Docker pre-installed.
+- Permissions on artifacts: container runs with host UID; ensure workspace writable.
 
 ## Learn more
-- Introduction: [docs/intro.md](docs/intro.md)
-- Install via GitHub Actions: [docs/installation/github-actions.md](docs/installation/github-actions.md)
-- Run with Docker locally: [docs/installation/docker.md](docs/installation/docker.md)
-- Starter configurations: [docs/examples/starter-configs.md](docs/examples/starter-configs.md)
-- Output: [formats](docs/output/formats.md), [destinations](docs/output/destinations.md)
-- Policies: [docs/policies/](docs/policies/)
-- Concepts: [docs/concepts/](docs/concepts/)
-- Configuration: [overview](docs/configuration/overview.md), [main config](docs/configuration/main-config.md)
+Structured documentation lives under `docs/`.
+
+Getting Started
+- Overview / Intro: [docs/intro.md](docs/intro.md)
+- Quick Start: [docs/quick-start.md](docs/quick-start.md)
+- Install (GitHub Actions): [docs/installation/github-actions.md](docs/installation/github-actions.md)
+- Install (Docker): [docs/installation/docker.md](docs/installation/docker.md)
+
+Core Concepts
+- Diff Analysis (why only changed items): [docs/concepts/diff-analysis.md](docs/concepts/diff-analysis.md)
+- Policy System & Rule Model: [docs/concepts/policy-system.md](docs/concepts/policy-system.md)
+- Scanning Types: [docs/concepts/scanning-types.md](docs/concepts/scanning-types.md)
+- Configuration Architecture: [docs/concepts/configuration-architecture.md](docs/concepts/configuration-architecture.md)
+- Progressive Enforcement: [docs/operations/progressive-enforcement.md](docs/operations/progressive-enforcement.md)
+- Security / Trust Model: [docs/operations/security-trust-model.md](docs/operations/security-trust-model.md)
+- Performance & Caching: [docs/operations/performance-caching.md](docs/operations/performance-caching.md)
+- Glossary: [docs/concepts/glossary.md](docs/concepts/glossary.md)
+
+Configuration
+- Overview: [docs/configuration/overview.md](docs/configuration/overview.md)
+- Main Config Reference: [docs/configuration/main-config.md](docs/configuration/main-config.md)
+- Style & Naming Guide: [docs/configuration/style-naming-guide.md](docs/configuration/style-naming-guide.md)
+
+Policies
+- License: [docs/policies/license.md](docs/policies/license.md)
+- Package: [docs/policies/package.md](docs/policies/package.md)
+- Vulnerability: [docs/policies/vulnerability.md](docs/policies/vulnerability.md)
+- Validation: [docs/policies/validation.md](docs/policies/validation.md)
+
+Outputs
+- Formats: [docs/output/formats.md](docs/output/formats.md)
+- Destinations: [docs/output/destinations.md](docs/output/destinations.md)
+- Combining & Grouping: [docs/output/combining-grouping.md](docs/output/combining-grouping.md)
+
+Examples
+- Starter Configs: [docs/examples/starter-configs.md](docs/examples/starter-configs.md)
+
+Operations & Support
+- Troubleshooting / FAQ: [docs/operations/troubleshooting-faq.md](docs/operations/troubleshooting-faq.md)
+
+Narrative Kernel
+"Codeward helps teams govern rapidly produced, AI-assisted code by enforcing security, license, and quality policies on every change. Diff-aware scanning highlights only what changed, reducing review noise and preventing silent risk introduction before merge."

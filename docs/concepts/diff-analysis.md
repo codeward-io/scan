@@ -1,213 +1,82 @@
+---
+title: Diff-Based Analysis
+description: Diff-based classification (new | changed | removed | existing) that scopes Codeward policies & outputs to only net-new or modified risk.
+keywords: diff-based analysis, codeward, policy, output, net-new risk, modified risk
+---
+
 # Diff-Based Analysis
 
-Codeward's core functionality is **diff-based analysis** - comparing the security state between two versions of your repository to identify exactly what changed. This approach provides focused, actionable security feedback by highlighting only the differences.
+Codeward focuses every policy and output on what a change introduces or alters— not historic backlog. A pull request (or feature branch) is compared to *main* and each record is classified so governance targets only net-new or modified risk.
 
-## How Diff Analysis Works
+> See also: [Glossary](./glossary.md) for term definitions and the [Policy System](./policy-system.md) for how actions are applied.
 
-### Comparison Process
+## How It Works
+1. Scan baseline repository (mounted at `/main`).
+2. Scan change workspace (mounted at `/branch`) when `CI_EVENT=pr`; otherwise single-path (main) scan.
+3. Classify each record into one diff category (canonical order below).
+4. Apply policy `actions` per category (only keys you define matter).
+5. Render each output restricted to its `changes` filter.
 
-Codeward compares two repository states:
-1. **Main branch state**: The baseline for comparison (usually main/master)
-2. **Feature branch state**: The changes being evaluated (usually a PR branch)
+## Change Categories (Authoritative)
+| Category | Definition | Typical Action Pattern | Governance Rationale |
+|----------|------------|------------------------|----------------------|
+| new | Present only in branch | [block](./glossary.md#block) / [warn](./glossary.md#warn) | Net-new risk entering codebase (highest leverage gate) |
+| changed | Present in both but key attributes differ (e.g., version) | [warn](./glossary.md#warn) | Possible upgrade/downgrade or license/severity shift requiring review |
+| removed | Present only in main (eliminated by branch) | [info](./glossary.md#info) | Indicates remediation / improvement; never block |
+| existing | Present in both unchanged | [info](./glossary.md#info) / [warn](./glossary.md#warn) | Backlog context; avoid blocking velocity until ready to escalate |
 
-The tool scans both states and compares the results to identify:
-- **New issues**: Problems introduced in the feature branch
-- **Removed issues**: Problems fixed in the feature branch  
-- **Existing issues**: Problems present in both versions
-- **Changed issues**: Problems with modified details (severity, etc.)
+(Glossary entries: [new](./glossary.md#new) · [changed](./glossary.md#changed) · [removed](./glossary.md#removed) · [existing](./glossary.md#existing))
 
-## Change Classification
+(Always express keys in the canonical order: `new`, `changed`, `removed`, `existing` for tables, examples, and action maps when ordering is shown.)
 
-Codeward categorizes differences into four types of changes:
+## Output Scoping with `changes`
+Use the per-output `"changes": [ ... ]` array to minimize reviewer noise:
+- PR comment: `["new","changed"]` (focus only on what to act on now).
+- Backlog / issue: `["existing"]` (track inherited debt separately).
+- Progress reporting: `["removed"]` (celebrate remediation).
+- Full audit artifact: all four categories.
 
-### New Changes
-**Definition**: Issues introduced in the feature branch that weren't present in main
-
-**Example**: Adding a dependency with a known vulnerability
+## Example Policy (Severity Gate)
 ```json
 {
-  "change_type": "new",
-  "vulnerability_id": "CVE-2023-12345",
-  "package": "express@4.17.1",
-  "severity": "CRITICAL"
+  "vulnerability": [
+    {
+      "name": "critical-and-high-vulns",
+      "actions": {"new": "block", "changed": "warn", "removed": "info", "existing": "warn"},
+      "rules": [
+        {"field": "Severity", "type": "eq", "value": "CRITICAL"},
+        {"field": "Severity", "type": "eq", "value": "HIGH"}
+      ],
+      "outputs": [
+        {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new","changed"], "collapse": true},
+        {"format": "json", "destination": "file:/results/vuln-changes.json", "changes": ["new","changed","removed" ]}
+      ]
+    }
+  ]
 }
 ```
 
-**Typical Policy**: Configure with `"new": "block"` to prevent new security issues
+## Best Practices
+| Goal | Practice |
+|------|----------|
+| Reduce PR noise | Exclude `existing` from PR destinations |
+| Encourage remediation | Separate `removed` section or output |
+| Highlight risky deltas | Always include `changed` for packages / licenses where version or classification can shift risk |
+| Deterministic automation | Emit JSON with explicit `changes` filters; combine via [Combining & Grouping](../output/combining-grouping.md) |
+| Safe rollout | Start blocking only on `new` critical risk, later expand |
 
-### Existing Changes  
-**Definition**: Issues present in both main and feature branches
+## Common Misconfigurations
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Everything marked new | Baseline not mounted at `/main` or missing `CI_EVENT=pr` | Mount both `/main` & `/branch`; set `CI_EVENT=pr` |
+| No changed items appear | Actual record attributes identical | Expected; verify version or metadata truly changed |
+| Existing overwhelms review | PR output omitted `changes` filter | Add `"changes": ["new","changed"]` to PR outputs |
 
-**Example**: Known vulnerability that exists in both versions
-```json
-{
-  "change_type": "existing", 
-  "vulnerability_id": "CVE-2023-67890",
-  "package": "lodash@4.17.19",
-  "severity": "HIGH"
-}
-```
+## Related Topics
+- [Policy System](./policy-system.md)
+- [Scanning Types](./scanning-types.md)
+- [Combining & Grouping](../output/combining-grouping.md)
+- [Output Formats](../output/formats.md)
 
-**Typical Policy**: Configure with `"existing": "warn"` or `"existing": "info"` to track without blocking
-
-### Removed Changes
-**Definition**: Issues that were resolved in the feature branch
-
-**Example**: Vulnerability fixed by updating a dependency
-```json
-{
-  "change_type": "removed",
-  "vulnerability_id": "CVE-2023-11111", 
-  "package": "old-crypto@1.0.0",
-  "severity": "CRITICAL"
-}
-```
-
-**Typical Policy**: Configure with `"removed": "info"` to acknowledge improvements
-
-### Changed Changes
-**Definition**: Issues with modified details between branches
-
-**Example**: Vulnerability with updated severity rating
-```json
-{
-  "change_type": "changed",
-  "vulnerability_id": "CVE-2023-22222",
-  "package": "image-processor@2.1.0", 
-  "severity": "HIGH",
-  "previous_severity": "MEDIUM"
-}
-```
-
-**Typical Policy**: Configure with `"changed": "warn"` to review modifications
-
-## Policy Configuration for Changes
-
-### Action Configuration
-Configure different actions for each change type in your policies:
-
-```json
-{
-  "vulnerability": [{
-    "name": "Critical vulnerability policy",
-    "disabled": false,
-    "actions": {
-      "new": "block",      // Block new critical issues
-      "existing": "warn",  // Warn about existing issues  
-      "removed": "info",   // Log resolved issues
-      "changed": "warn"    // Review changed issues
-    },
-    "rules": {
-      "severity": [{"type": "eq", "value": "CRITICAL"}]
-    },
-    "outputs": [
-      {
-        "format": "markdown",
-        "template": "table", 
-        "destination": "git:pr",
-        "fields": ["VulnerabilityID", "PkgName", "Severity"],
-        "changes": ["new", "existing"]
-      }
-    ]
-  }]
-}
-```
-
-### Change-Specific Outputs
-Control which changes appear in different outputs:
-
-```json
-{
-  "vulnerability": [{
-    "name": "Security improvements tracker",
-    "disabled": false,
-    "actions": {
-      "removed": "info"
-    },
-    "outputs": [
-      {
-        "format": "markdown",
-        "template": "text",
-        "destination": "file:security-improvements.md",
-        "changes": ["removed"],  // Only show resolved issues
-        "title": "Security Improvements This Sprint"
-      }
-    ]
-  }]
-}
-```
-
-## Practical Examples
-
-### Pull Request Workflow
-When a developer creates a pull request:
-
-1. **CI scans both branches**: Main branch and PR branch are scanned
-2. **Changes identified**: Codeward compares the scan results
-3. **Policies applied**: Each change type triggers configured actions
-4. **Results reported**: Focused report shows only the differences
-
-### Example Text Output
-```markdown
-## [codeward.io] Vulnerability Report
-
-**📋 Policy:** Vulnerability issues
-
-### 📁 `go/go.mod`
-#### ⚠️ **EXISTING VULNERABILITIES**
-##### 🟡 **Medium: CVE-2024-24786**
-- **Vulnerability ID:** CVE-2024-24786
-- **Package ID:** `google.golang.org/protobuf@v1.30.0`
-- **Package:** `google.golang.org/protobuf`
-- **Installed Version:** v1.30.0
-- **Fix Available:** Update to `1.33.0` or later
-- **Status:** fixed
-- **Severity:** MEDIUM
-- **Relationship:** indirect
-- **Parents:** golang-test-dependencies 
-- **Targets:** go/go.mod 
-##### 🟠 **High: CVE-2023-39325**
-- **Vulnerability ID:** CVE-2023-39325
-- **Package ID:** `golang.org/x/net@v0.9.0`
-- **Package:** `golang.org/x/net`
-- **Installed Version:** v0.9.0
-- **Fix Available:** Update to `0.17.0` or later
-- **Status:** fixed
-- **Severity:** HIGH
-- **Relationship:** direct
-- **Parents:** golang-test-dependencies 
-- **Targets:** go/go.mod 
-```
-
-### Example Table Output
-```markdown
-## [codeward.io] Vulnerability Report
-
-> Policy: **Vulnerability issues**
-#### `go/go.mod`
-
-Detection: **existing** - Action: **warn**
-
-| VulnerabilityID | PkgID | PkgName | InstalledVersion | FixedVersion | Status | Severity | Relationship | Children | Parents | Targets |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| CVE-2020-28483 | github.com/gin-gonic/gin@v1.6.3 | github.com/gin-gonic/gin | v1.6.3 | 1.7.7 | fixed | HIGH | indirect | N/A | golang-test-dependencies | go/go.mod |
-| CVE-2023-26125 | github.com/gin-gonic/gin@v1.6.3 | github.com/gin-gonic/gin | v1.6.3 | 1.9.0 | fixed | MEDIUM | indirect | N/A | golang-test-dependencies | go/go.mod |
-| CVE-2023-29401 | github.com/gin-gonic/gin@v1.6.3 | github.com/gin-gonic/gin | v1.6.3 | 1.9.1 | fixed | MEDIUM | indirect | N/A | golang-test-dependencies | go/go.mod |
-```
-
-## Benefits of Diff Analysis
-
-### Focused Feedback
-- **Relevant results**: Only shows what changed in your PR
-- **Actionable items**: Clear about what needs attention
-- **Reduced noise**: Existing issues don't overwhelm new ones
-
-### Clear Responsibility
-- **Attribution**: Links security changes to specific code changes
-- **Accountability**: Developers see impact of their dependency choices
-- **Education**: Learn about security implications of changes
-
-### Continuous Improvement
-- **Progress tracking**: Monitor security improvements over time
-- **Positive reinforcement**: Celebrate when vulnerabilities are fixed
-- **Trend analysis**: Understand security trajectory of your project
+---
+Next: define rules & actions in the [Policy System](./policy-system.md).

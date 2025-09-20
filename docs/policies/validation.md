@@ -1,362 +1,138 @@
-# Custom Validation Policies
+---
+id: validation-policies
+title: Validation Policies
+description: Diff-aware file, config, and filesystem assertions to block insecure changes while observing existing debt with progressive enforcement.
+keywords:
+  - validation
+  - config policies
+  - diff-aware
+  - security
+  - progressive enforcement
+---
+<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/policies/validation.md -->
+# Validation Policies
 
-Custom validation policies enforce project-specific security and compliance requirements by validating file contents, configurations, and project structure.
+Validation policies assert security, compliance, and project hygiene rules against file contents (text, json, yaml), filesystem structure, or configuration values. They complement vulnerability / license / package policies by covering custom guardrails your org needs.
 
-## 🎯 Overview
+## Overview
+Each validation policy evaluates one path pattern (file(s) or filesystem) using rule objects. Diff categories (`new | changed | removed | existing`) still drive actions (see semantics: [Diff-Based Analysis](../concepts/diff-analysis.md)), but validation policies focus on pass/fail of rule checks within the current head version. Use them to block introduction of insecure patterns while observing existing debt. Staged rollout patterns: [Progressive Enforcement](../operations/progressive-enforcement.md).
 
-Custom validation policies support:
+> Style & naming conventions (actions formatting `info | warn | block`, canonical change order) live in the [Style & Naming Guide](../configuration/style-naming-guide.md).
 
-- **Text file validation** for configuration files, scripts, and documentation
-- **JSON/YAML validation** for structured configuration files
-- **File existence checks** for required project files
-- **Content pattern matching** with flexible rules
+Canonical change category order everywhere: new, changed, removed, existing.
 
-## 📋 Policy Structure
+## Rationale / Principles
+| Principle | Why |
+|-----------|-----|
+| Explicit assertions | Prevent silent drift in critical config (Dockerfile, CI workflows, package.json). |
+| Diff gating | Only new / changed violations block; existing backlog can surface but remain non‑blocking. |
+| Narrow policies | Single intent per policy simplifies tuning & rollout. |
+| Progressive enforcement | Start warn → graduate to block after confidence. |
+| AI governance | AI‑generated config/scripts may omit mandatory hardening; policies catch omissions early. |
 
-### **Basic Validation Policy**
-
-```json
-{
-  "validation": [{
-    "name": "Dockerfile security validation",
-    "disabled": false,
-    "path": "Dockerfile",
-    "type": "text",
-    "action": "block",
-    "rules": [{
-      "type": "contains",
-      "value": "USER"
-    }],
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "fields": ["key", "reason", "passing"]
-    }]
-  }]
-}
-```
-
-### **Policy Components**
-
-#### **1. Name and Description**
-```json
-{
-  "name": "Dockerfile security validation",
-  "description": "Ensures Dockerfiles follow security best practices"
-}
-```
-
-#### **2. Policy Disabling**
-```json
-{
-  "disabled": false,  // Set to true to disable this policy
-  "name": "Policy name"
-}
-```
-
-Individual policies can be disabled by setting `"disabled": true`. When disabled, the policy is skipped during scanning and the disabled policy names are logged for transparency.
-
-#### **3. Target Configuration**
-```json
-{
-  "path": "Dockerfile",    // File path pattern
-  "type": "text"          // File type: text, json, yaml
-}
-```
-
-#### **4. Action Configuration**
-```json
-{
-  "action": "block"       // Action: block, warn, info
-}
-```
-
-#### **5. Validation Rules**
-```json
-{
-  "rules": [{
-    "type": "contains",   // Rule type
-    "key": "USER",        // Key to check (for JSON/YAML)
-    "value": "root"       // Value to match
-  }]
-}
-```
-
-## 🔍 Supported File Types
-
-### **Text Files**
-Validate plain text files with pattern matching:
-
-```json
-{
-  "validation": [{
-    "name": "Dockerfile USER directive",
-    "path": "Dockerfile",
-    "type": "text",
-    "action": "block",
-    "rules": [{
-      "type": "contains",
-      "value": "USER"
-    }]
-  }]
-}
-```
-
-### **JSON Files**
-Validate JSON files with key-value checks:
-
-```json
-{
-  "validation": [{
-    "name": "package.json security",
-    "path": "package.json",
-    "type": "json",
-    "action": "warn",
-    "rules": [{
-      "type": "exists",
-      "key": "scripts.test"
-    }]
-  }]
-}
-```
-
-### **YAML Files**
-Validate YAML files with structured checks:
-
-```json
-{
-  "validation": [{
-    "name": "CI/CD configuration",
-    "path": ".github/workflows/*.yml",
-    "type": "yaml",
-    "action": "block",
-    "rules": [{
-      "type": "eq",
-      "key": "jobs.build.security",
-      "value": "true"
-    }]
-  }]
-}
-```
-
-## 🎛️ Rule Types
-
-### **Text Validation Rules**
-
-| Rule Type | Description | Example |
-|-----------|-------------|---------|
-| `contains` | Text must contain substring | `{"type": "contains", "value": "USER"}` |
-| `not_contains` | Text must not contain substring | `{"type": "not_contains", "value": "password"}` |
-| `regex` | Text must match regex pattern | `{"type": "regex", "value": "^USER \\w+"}` |
-
-### **JSON/YAML Validation Rules**
-
-| Rule Type | Description | Example |
-|-----------|-------------|---------|
-| `exists` | Key must exist | `{"type": "exists", "key": "version"}` |
-| `not_exists` | Key must not exist | `{"type": "not_exists", "key": "debug"}` |
-| `eq` | Value must equal | `{"type": "eq", "key": "env", "value": "production"}` |
-| `ne` | Value must not equal | `{"type": "ne", "key": "log_level", "value": "debug"}` |
-| `contains` | Value must contain substring | `{"type": "contains", "key": "name", "value": "test"}` |
-
-## 📊 Real-World Policy Examples
-
-### **Dockerfile Security**
-
+## Schema (Subset)
+Full schema, operators, allowed fields: [Policy System](../concepts/policy-system.md). Style conventions: [Style & Naming Guide](../configuration/style-naming-guide.md).
 ```json
 {
   "validation": [
     {
-      "name": "Non-root user required",
-      "path": "Dockerfile",
+      "name": "dockerfile-non-root",
       "type": "text",
-      "action": "block",
-      "rules": [{
-        "type": "contains",
-        "value": "USER"
-      }],
-      "outputs": [{
-        "format": "markdown",
-        "destination": "git:pr",
-        "title": "🐳 Dockerfile Security Issues",
-        "fields": ["key", "reason", "passing"]
-      }]
-    },
-    {
-      "name": "No privileged containers",
       "path": "Dockerfile",
-      "type": "text",
-      "action": "block",
-      "rules": [{
-        "type": "not_contains",
-        "value": "--privileged"
-      }]
+      "actions": {"new": "block", "changed": "block", "existing": "warn"},
+      "rules": [ {"type": "contains", "value": "USER"} ],
+      "outputs": [ {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["key","reason","passing"], "changes": ["new","changed","existing"]} ]
     }
   ]
 }
 ```
+Notes:
+* Same per‑change `actions` map as other policies (no single `action` key).
+* `rules` array (OR). No nested keyed objects.
+* Types: text | json | yaml | yml | filesystem.
+* Filesystem rules use `path` with `exists` / `not_exists`.
 
-### **CI/CD Security**
+## Rule Reference (Implemented)
+| Type Context | Keys | Operators |
+|--------------|------|-----------|
+| text | type, value | regex, contains, not_contains, hasPrefix, hasSuffix, eq, ne |
+| json / yaml / yml | type, key, value | eq, ne, lt, gt, le, ge, contains, not_contains, hasPrefix, hasSuffix, regex, exists, not_exists |
+| filesystem | type, path | exists, not_exists |
 
+Examples:
 ```json
-{
-  "validation": [{
-    "name": "GitHub Actions security",
-    "path": ".github/workflows/*.yml",
-    "type": "yaml",
-    "action": "warn",
-    "rules": [
-      {
-        "type": "not_contains",
-        "key": "jobs.*.steps[*].run",
-        "value": "curl | sh"
-      },
-      {
-        "type": "eq",
-        "key": "permissions.contents",
-        "value": "read"
-      }
-    ],
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "🔧 CI/CD Security Validation",
-      "fields": ["key", "reason", "passing"]
-    }]
-  }]
-}
+{"rules":[{"type":"regex","value":"^FROM.+@sha256"}]}
+{"rules":[{"type":"exists","key":"scripts.test"}]}
+{"rules":[{"type":"not_contains","value":"password"}]}
+{"rules":[{"type":"exists","path":"README.md"}]}
 ```
 
-### **Package Configuration**
-
+## Progressive Enforcement Examples
+(See strategy guidance: [Progressive Enforcement](../operations/progressive-enforcement.md))
+### Harden Dockerfile Stepwise
 ```json
-{
-  "validation": [{
-    "name": "package.json validation",
-    "path": "package.json",
-    "type": "json",
-    "action": "warn",
-    "rules": [
-      {
-        "type": "exists",
-        "key": "version"
-      },
-      {
-        "type": "exists",
-        "key": "license"
-      },
-      {
-        "type": "not_contains",
-        "key": "scripts.postinstall",
-        "value": "curl"
-      }
-    ],
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "📦 Package Configuration Issues",
-      "fields": ["key", "reason", "passing"]
-    }]
-  }]
+"validation": [
+  {"name":"dockerfile-user","type":"text","path":"Dockerfile","actions":{"new":"warn","changed":"warn"},
+   "rules":[{"type":"contains","value":"USER"}],
+   "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["key","reason","passing"],"changes":["new","changed"]}]},
+  {"name":"dockerfile-user-block","type":"text","path":"Dockerfile","actions":{"new":"block","changed":"block","existing":"warn"},
+   "rules":[{"type":"contains","value":"USER"}],
+   "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["key","reason","passing"],"changes":["new","changed","existing"],"collapse":true}]}
+]
+```
+### Secure CI Workflow
+```json
+{"name":"workflow-permissions","type":"yaml","path":".github/workflows/*.yml",
+ "actions":{"new":"block","changed":"block","existing":"warn"},
+ "rules":[
+   {"type":"eq","key":"permissions.contents","value":"read"},
+   {"type":"not_contains","key":"jobs.*.steps[*].run","value":"curl | sh"}
+ ],
+ "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["key","reason","passing"],"changes":["new","changed"]}]
 }
 ```
-
-### **Required Files Check**
-
+### Required Files (filesystem)
 ```json
-{
-  "validation": [{
-    "name": "Required files exist",
-    "path": "README.md",
-    "type": "text",
-    "action": "info",
-    "rules": [{
-      "type": "exists"
-    }],
-    "outputs": [{
-      "format": "markdown",
-      "destination": "git:pr",
-      "title": "📄 Missing Required Files",
-      "fields": ["key", "reason", "passing"]
-    }]
-  }]
-}
+{"name":"required-readme","type":"filesystem","path":".",
+ "actions":{"new":"info","changed":"info","removed":"info","existing":"info"},
+ "rules":[{"type":"exists","path":"README.md"}],
+ "outputs":[{"format":"json","destination":"file:/results/required-files.json","combined":true}]}
 ```
 
-## 📤 Output Customization
+## Output Strategy
+| Goal | Pattern |
+|------|---------|
+| PR remediation clarity | Markdown table (key, reason, passing) with only failing new/changed (filter rules + changes). |
+| Backlog surfacing | Separate policy routing `existing` to file:/ json. |
+| Automation ingestion | Combined JSON export; omit template field (see [Combining & Grouping](../output/combining-grouping.md)). |
+| Minimal noise | Restrict fields to key, reason, passing. |
 
-### **Field Selection**
+Combined JSON semantics: a single concatenated array containing all selected records across all matching policies (not multiple JSON roots).
 
-**Standard Fields:**
-```json
-{
-  "fields": ["key", "reason", "passing"]
-}
-```
+## Best Practices
+| Objective | Recommendation |
+|-----------|---------------|
+| Avoid over-blocking | Start with warnings to tune patterns. |
+| Express rationale | Use `comment` for why rule matters. |
+| Keep rules tight | Prefer explicit regex anchors to broad contains. |
+| Separate intents | One policy per domain (Dockerfile user, workflow perms). |
+| Maintain consistency | Reuse shared output destinations & formats. |
 
-### **Grouping Strategies**
+## Common Mistakes & Fixes
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Single `action` key used | Legacy schema misunderstanding | Replace with actions map (`new`,`changed`,`removed`,`existing`). |
+| Rules ignored | Nested object form; missing array | Use `"rules": [ {..}, {..} ]`. |
+| JSON output error (template) | Template set while format=json | Remove `template` key for json outputs. |
+| Fields rejected | Unsupported display field | Use only key,type,value,reason,passing,path. |
+| Over-reporting existing debt | Included `existing` in PR output | Limit `changes` to new/changed for PR outputs. |
 
-**By File Type:**
-```json
-{
-  "group_by": ["path"],
-  "title": "Validation Issues by File"
-}
-```
-
-## 🚨 Validation Best Practices
-
-### **Security-First Approach**
-
-**Dockerfile Validations:**
-- Always require non-root USER
-- Prevent privileged containers
-- Avoid hardcoded secrets
-- Use trusted base images
-
-**CI/CD Validations:**
-- Prevent shell script injection
-- Require minimal permissions
-- Validate workflow triggers
-- Check for unsafe actions
-
-**Configuration Validations:**
-- Require license declarations
-- Prevent debug settings in production
-- Validate security configurations
-- Check for deprecated features
-
-### **Pattern Matching**
-
-**Safe Patterns:**
-```json
-{
-  "rules": [{
-    "type": "regex",
-    "value": "^USER \\w+$"  // Specific USER format
-  }]
-}
-```
-
-**Dangerous Patterns to Avoid:**
-```json
-{
-  "rules": [{
-    "type": "not_contains",
-    "value": "password"  // Generic secrets
-  }]
-}
-```
+## Related / Next Steps
+* Core schema details: [Policy System](../concepts/policy-system.md)
+* Diff semantics: [Diff-Based Analysis](../concepts/diff-analysis.md)
+* Rollout strategies: [Progressive Enforcement](../operations/progressive-enforcement.md)
+* Output usage: [Output Formats](../output/formats.md) & [Combining & Grouping](../output/combining-grouping.md)
+* Starter patterns: [Starter Configurations](../examples/starter-configs.md)
 
 ---
-
-**Next Steps:**
-- Learn about [Output Formats](../output/formats.md)
-- Configure [Advanced Features](../configuration/overview.md)
-- Explore [Real-World Examples](../examples/starter-configs.md)
-
-## Related Topics
-
-- [Output Formats](../output/formats.md)
-- [Configuration Overview](../configuration/overview.md)
-- [Starter Configurations](../examples/starter-configs.md)
+AI Governance: Validation policies ensure AI or human rapid edits cannot remove essential security lines (e.g., non-root USER) or add unsafe constructs without immediate detection.

@@ -1,294 +1,145 @@
+---
+title: Starter Configurations
+description: Opinionated, progressive, diff-aware starter policies for adopting Codeward with minimal noise and safe incremental enforcement.
+---
+
 # Starter Configurations
 
-Get up and running quickly with these proven Codeward configurations. Each configuration is designed for specific use cases and can be customized to meet your team's needs.
+Opinionated starting points for adopting Codeward with progressive, diff‑aware enforcement. Copy, trim, or extend — keep each policy focused.
 
-## Basic Security Configuration
+## Overview
+These staged examples show how to: (1) gate only net‑new critical risk first, (2) layer observation for broader risk, (3) introduce license & package governance, (4) add validation. All assume diff (PR) scanning: highlight `new` (and where helpful `changed`) while routing backlog elsewhere.
 
-Perfect for teams new to security scanning. Focuses on critical issues without overwhelming developers.
+Reviewer expectations (use these in internal docs / runbooks):
+- Stage 1: Review only blocked CRITICAL vulnerabilities introduced by the PR.
+- Stage 2: Continue blocking CRITICAL; review HIGH entries (warn) for prioritization.
+- Stage 3: In addition, ensure no prohibited licenses (GPL) newly appear; glance at new direct dependencies.
+- Stage 4: Begin noting structural validation findings (warn) to prepare for future blocking.
+- Stage 5+: Promote selected validations or HIGH severity to block based on remediation progress.
 
-```json
-{
-  "vulnerability": [{
-    "name": "Critical vulnerability protection",
-    "disabled": false,
-    "actions": {
-      "new": "block",
-      "existing": "warn",
-      "removed": "info",
-      "changed": "warn"
-    },
-    "rules": {
-      "severity": [{"type": "eq", "value": "CRITICAL"}]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "template": "table",
-      "destination": "git:pr",
-      "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
-      "changes": ["new", "existing"]
-    }]
-  }],
-  "license": [{
-    "name": "License awareness",
-    "disabled": false,
-    "actions": {
-      "new": "info",
-      "existing": "info",
-      "removed": "info",
-      "changed": "info"
-    },
-    "outputs": [{
-      "format": "markdown",
-      "template": "table", 
-      "destination": "git:pr",
-      "fields": ["Name", "Category", "PkgName"],
-      "changes": ["new"]
-    }]
-  }]
-}
-```
+## Principles
+| Principle | Applied Here |
+|-----------|--------------|
+| Diff focus | PR markdown restricted to `new` (occasionally `changed`). Backlog routed to JSON/file. |
+| Progressive rollout | Start blocking only CRITICAL (or Copyleft) → layer warnings → escalate. |
+| Narrow policies | One intent per policy (critical block, high observe, license GPL block, new direct packages, etc.). |
+| Deterministic outputs | Stable tables for PR; combined JSON for automation. |
+| AI governance | Gates net‑new high risk from large or AI‑generated commits. |
 
-**What this does:**
-- Blocks new critical vulnerabilities
-- Warns about existing critical issues
-- Tracks license information
-- Provides clear PR feedback
-
-## Comprehensive Security Configuration
-
-More thorough security coverage for production environments.
-
+---
+## 1. Minimal Production Gate (Block New Critical Vulnerabilities)
 ```json
 {
   "vulnerability": [
     {
-      "name": "Critical vulnerability blocking",
-      "disabled": false,
-      "actions": {
-        "new": "block",
-        "existing": "warn",
-        "removed": "info",
-        "changed": "warn"
-      },
-      "rules": {
-        "severity": [{"type": "eq", "value": "CRITICAL"}]
-      },
-      "outputs": [{
-        "format": "markdown",
-        "template": "table",
-        "destination": "git:pr",
-        "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
-        "changes": ["new", "existing"]
-      }]
-    },
-    {
-      "name": "High severity monitoring",
-      "disabled": false,
-      "actions": {
-        "new": "warn",
-        "existing": "info",
-        "removed": "info",
-        "changed": "warn"
-      },
-      "rules": {
-        "severity": [{"type": "eq", "value": "HIGH"}]
-      },
-      "outputs": [{
-        "format": "markdown",
-        "template": "table",
-        "destination": "git:pr", 
-        "fields": ["VulnerabilityID", "PkgName", "InstalledVersion", "FixedVersion"],
-        "changes": ["new"]
-      }]
-    }
-  ],
-  "license": [{
-    "name": "License compliance",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info",
-      "changed": "warn"
-    },
-    "rules": {
-      "license": [{"type": "contains", "value": "GPL"}]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "template": "text",
-      "destination": "git:pr"
-    }]
-  }],
-  "package": [{
-    "name": "Package change tracking",
-    "disabled": false,
-    "actions": {
-      "new": "info",
-      "existing": "info",
-      "removed": "info",
-      "changed": "info"
-    },
-    "outputs": [{
-      "format": "json",
-      "destination": "file:package-changes.json"
-    }]
-  }]
-}
-```
-
-**What this does:**
-- Blocks critical vulnerabilities
-- Warns about high severity issues
-- Monitors license compliance
-- Tracks all package changes
-
-## Development Environment Configuration
-
-Lightweight configuration for development and testing environments.
-
-```json
-{
-  "vulnerability": [{
-    "name": "Development security awareness",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info",
-      "changed": "warn"
-    },
-    "rules": {
-      "severity": [{"type": "eq", "value": "CRITICAL"}]
-    },
-    "outputs": [{
-      "format": "json",
-      "destination": "file:security-report.json"
-    }]
-  }],
-  "package": [{
-    "name": "Package change tracking",
-    "disabled": false,
-    "actions": {
-      "new": "info",
-      "existing": "info",
-      "removed": "info",
-      "changed": "info"
-    },
-    "outputs": [{
-      "format": "markdown",
-      "template": "text",
-      "destination": "log:stdout"
-    }]
-  }]
-}
-```
-
-**What this does:**
-- Warns about critical vulnerabilities
-- Tracks package changes
-- Outputs JSON for tooling integration
-- Lightweight for rapid development
-
-## Custom Validation Configuration
-
-Example configuration with custom validation rules.
-
-```json
-{
-  "vulnerability": [{
-    "name": "Security monitoring",
-    "disabled": false,
-    "actions": {
-      "new": "warn",
-      "existing": "info",
-      "removed": "info",
-      "changed": "warn"
-    },
-    "rules": {
-      "severity": [
-        {"type": "eq", "value": "CRITICAL"},
-        {"type": "eq", "value": "HIGH"}
+      "name": "block-critical-new",
+      "actions": {"new": "block", "existing": "warn"},
+      "rules": [ {"field": "Severity", "type": "eq", "value": "CRITICAL"} ],
+      "outputs": [
+        {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new"], "collapse": true}
       ]
-    },
-    "outputs": [{
-      "format": "markdown",
-      "template": "table",
-      "destination": "git:pr"
-    }]
-  }],
-  "validation": [{
-    "name": "Hardcoded secrets detection",
-    "disabled": false,
-    "actions": {
-      "new": "block",
-      "existing": "warn",
-      "removed": "info",
-      "changed": "warn"
-    },
-    "rules": [
-      {
-        "name": "Password patterns",
-        "type": "regex",
-        "pattern": "(password|secret|key)\\s*=\\s*[\"'][^\"']{8,}[\"']",
-        "file_pattern": "*.{go,js,py,java}",
-        "message": "Potential hardcoded secret detected"
-      },
-      {
-        "name": "API key patterns",
-        "type": "regex", 
-        "pattern": "api[_-]?key\\s*[:=]\\s*[\"'][a-zA-Z0-9]{20,}[\"']",
-        "file_pattern": "*.{go,js,py,java,yaml,yml}",
-        "message": "Potential API key detected"
-      }
-    ],
-    "outputs": [{
-      "format": "markdown",
-      "template": "text",
-      "destination": "git:pr"
-    }]
-  }]
+    }
+  ]
+}
+```
+Purpose: Block net‑new critical issues. Existing backlog warns (non‑blocking) until a remediation plan exists.
+
+---
+## 2. Add High Severity Observation
+```json
+{
+  "vulnerability": [
+    {"name": "block-critical-new", "actions": {"new":"block","existing":"warn"}, "rules": [ {"field":"Severity","type":"eq","value":"CRITICAL"} ],
+     "outputs": [ {"format":"markdown","template":"table","destination":"git:pr","fields":["VulnerabilityID","PkgName","Severity","FixedVersion"],"changes":["new" ]} ]},
+    {"name": "observe-high-new", "actions": {"new":"warn"}, "rules": [ {"field":"Severity","type":"eq","value":"HIGH"} ],
+     "outputs": [ {"format":"markdown","template":"table","destination":"git:pr","fields":["VulnerabilityID","PkgName","Severity"],"changes":["new"],"collapse": true} ]}
+  ]
+}
+```
+Purpose: High severity additions surface (warn) without blocking; CRITICAL still blocks.
+
+---
+## 3. License & Package Awareness Layer
+Add license gating for GPL and visibility into new direct dependencies.
+```json
+{
+  "vulnerability": [
+    {"name":"block-critical-new","actions":{"new":"block","existing":"warn"},"rules":[{"field":"Severity","type":"eq","value":"CRITICAL"}],
+     "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["VulnerabilityID","PkgName","Severity","FixedVersion"],"changes":["new"]}]}
+  ],
+  "license": [
+    {"name":"gpl-block","actions":{"new":"block","existing":"warn"},"rules":[{"field":"Category","type":"eq","value":"Copyleft"}],
+     "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["Name","Category","Severity","PkgName"],"changes":["new"],"collapse":true}]}
+  ],
+  "package": [
+    {"name":"direct-new-observe","actions":{"new":"info"},"rules":[{"field":"Relationship","type":"eq","value":"direct"}],
+     "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["Name","Version","Relationship"],"changes":["new"]}]}
+  ]
 }
 ```
 
-**What this does:**
-- Monitors security vulnerabilities
-- Blocks hardcoded secrets
-- Custom validation patterns
-- Clear security feedback
+---
+## 4. Combined JSON Automation Output
+Adds a single JSON artifact combining multiple policy outputs (all JSON at same destination). Combined JSON semantics = one concatenated array (no wrapper). See [Combining & Grouping](../output/combining-grouping.md).
+```json
+{
+  "vulnerability": [
+    {"name":"crit-block","actions":{"new":"block"},"rules":[{"field":"Severity","type":"eq","value":"CRITICAL"}],
+     "outputs":[{"format":"json","destination":"file:/results/security.json","combined":true,"changes":["new"]}]},
+    {"name":"high-observe","actions":{"new":"warn"},"rules":[{"field":"Severity","type":"eq","value":"HIGH"}],
+     "outputs":[{"format":"json","destination":"file:/results/security.json","combined":true,"changes":["new"]}]}
+  ],
+  "license": [
+    {"name":"gpl-block","actions":{"new":"block"},"rules":[{"field":"Category","type":"eq","value":"Copyleft"}],
+     "outputs":[{"format":"json","destination":"file:/results/security.json","combined":true,"changes":["new"]}]}
+  ]
+}
+```
+Purpose: Single machine‑readable artifact for pipelines or dashboards.
 
-## Configuration Comparison
+---
+## 5. Adding Validation Policies (Config Hardening)
+```json
+{
+  "validation": [
+    {"name":"dockerfile-user","type":"text","path":"Dockerfile","actions":{"new":"block","changed":"block","existing":"warn"},
+     "rules":[{"type":"contains","value":"USER"}],
+     "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["key","reason","passing"],"changes":["new","changed"],"collapse":true}]},
+    {"name":"workflow-permissions","type":"yaml","path":".github/workflows/*.yml","actions":{"new":"block","changed":"block"},
+     "rules":[{"type":"eq","key":"permissions.contents","value":"read"},{"type":"not_contains","key":"jobs.*.steps[*].run","value":"curl | sh"}],
+     "outputs":[{"format":"markdown","template":"table","destination":"git:pr","fields":["key","reason","passing"],"changes":["new","changed"]}]}
+  ]
+}
+```
+Purpose: Enforce non‑root Docker builds & minimal workflow permissions.
 
-| Configuration | Use Case | Blocking Policies | Performance | Learning Curve |
-|---------------|----------|-------------------|-------------|----------------|
-| **Basic Security** | New teams | Critical only | Fast | Low |
-| **Comprehensive** | Production | Critical + License | Medium | Medium |
-| **Development** | Local development | None | Very Fast | Very Low |
-| **Custom Validation** | Security-focused | Critical + Secrets | Medium | Medium |
+---
+## Progressive Rollout
+Detailed phased guidance lives in the dedicated [Progressive Enforcement](../operations/progressive-enforcement.md) page.
 
-## Implementation Tips
+## Best Practices
+| Objective | Recommendation |
+|-----------|---------------|
+| Keep PR review focused | Limit PR markdown outputs to `new` (and essential `changed`). |
+| Avoid config sprawl | Reuse destinations; favor multiple small policies. |
+| Ensure determinism | Fix field ordering; prefer consistent table column order. |
+| Document rationale | Use `comment` or `title` to explain gating decisions. |
+| Separate backlog | Route `existing` to JSON (file destination) rather than PR. |
 
-### Start Small and Expand
-1. **Week 1**: Use basic configuration with warnings only
-2. **Week 2**: Enable blocking for critical vulnerabilities  
-3. **Week 3**: Add license and package monitoring
-4. **Week 4**: Implement custom validation rules
+## Common Mistakes & Fixes
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Nested rules object used | Legacy schema | Use array: `"rules": [{"field":...}]` |
+| License field `license` invalid | Not an allowed field | Use `Name`, `Category`, or `Severity` |
+| Mixed formats in combined JSON | Combined group had markdown output | Keep combined groups JSON only |
+| Validation single `action` key | Misapplied prior pattern | Provide `actions` map keyed by change category |
+| Backlog noise in PR | Included `existing` | Limit `changes` to `new` (and necessary `changed`) |
 
-### Testing Your Configuration
-1. Create a test branch with known vulnerabilities
-2. Run Codeward with your configuration
-3. Verify the expected policies trigger
-4. Adjust actions (block/warn/info) as needed
-5. Test with your team before deploying
+## Related / Next Steps
+- Policy model: [Policy System](../concepts/policy-system.md)
+- Diff categorization: [Diff-Based Analysis](../concepts/diff-analysis.md)
+- Output rules: [Combining & Grouping](../output/combining-grouping.md)
+- Validation details: [Validation Policies](../policies/validation.md)
 
-### Configuration Management
-- Version control your `config.json` with your project
-- Document any custom rules or special requirements
-- Review and update policies regularly
-
-## Related Topics
-
-- [Configuration Overview](../configuration/overview.md)
-- [Policy System](../concepts/policy-system.md)
-- [GitHub Actions Setup](../installation/github-actions.md)
-- [Output Formats](../output/formats.md)
+---
+AI Governance: These staged configs let you gate only net‑new critical & license risk while incrementally layering additional rules, preventing large or AI‑generated commits from silently expanding attack surface or compliance debt.

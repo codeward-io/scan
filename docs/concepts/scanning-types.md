@@ -1,374 +1,144 @@
+---
+title: Scanning Types
+description: Unified vulnerability, license, package, and validation scanning domains feeding a single diff-aware policy and output model.
+---
+
 # Scanning Types
 
-Codeward provides comprehensive security analysis through four distinct scanning types, each addressing specific aspects of application security and compliance.
+Codeward unifies four scan domains under one **diff + policy** model. Each produces structured records classified as `new`, `changed`, `removed`, or `existing` (see [Diff-Based Analysis](./diff-analysis.md) and [Glossary](./glossary.md)). Policies then apply `info | warn | block` actions per category (see [Glossary](./glossary.md#actions)) and route findings to outputs. Style conventions: [Style & Naming Guide](../configuration/style-naming-guide.md).
 
-## The Four Scanning Types
+## Domains Overview
+| Domain | Source | Surfaces | Typical Governance Focus |
+|--------|--------|----------|--------------------------|
+| Vulnerability | Trivy | CVE records per package (severity, fix version) | Block introduction of critical/high risk; track remediation |
+| License | Trivy | License name + category + severity mapping | Prevent prohibited categories (e.g., Copyleft) |
+| Package | Trivy | Dependency presence & version deltas | Review new additions; observe version shifts |
+| Validation | Filesystem / content | File existence & content rule results | Enforce structural & security conventions |
 
-### 1. Vulnerability Scanning
+> All share the same change categorization logic (no per-domain variations). Avoid redefining categories here—central source of truth is the Diff-Based Analysis page.
 
-**Purpose**: Detect security vulnerabilities in dependencies using Trivy scanner
+## 1. Vulnerability
+Highlights security risk in dependencies.
 
-**What it scans:**
-- Known security vulnerabilities (CVEs) in dependencies
-- Security issues in package versions
-- Vulnerability status and fix availability
+Key fields (filter / display): `VulnerabilityID`, `PkgID`, `PkgName`, `InstalledVersion`, `FixedVersion`, `Status`, `Severity`, `Relationship`, `Children`, `Parents`, `Targets`.
 
-**Scanner**: [Trivy](https://trivy.dev/) - Industry-standard vulnerability scanner with embedded binaries
-
-**Supported ecosystems:**
-- Node.js (npm, yarn)
-- Python (pip, poetry)
-- Go (go modules)
-- Java (Maven, Gradle)
-- PHP (Composer)
-- Ruby (Bundler)
-- And many more
-
-**Example configuration:**
+Example policy (critical block, high observe):
 ```json
 {
   "vulnerability": [
     {
-      "name": "Critical vulnerabilities",
-      "actions": {
-        "new": "block",
-        "existing": "warn"
-      },
-      "rules": {
-        "severity": [
-          {"type": "eq", "value": "CRITICAL"},
-          {"type": "eq", "value": "HIGH"}
-        ]
-      }
-    }
-  ]
-}
-```
-
-### 2. License Scanning
-
-**Purpose**: Ensure legal compliance across all dependencies
-
-**What it scans:**
-- License types and categories
-- License compatibility issues
-- Unknown or missing licenses
-
-**License classifications by risk level:**
-- **Forbidden** (CRITICAL): Licenses that must be avoided
-- **Restricted** (HIGH): Licenses requiring legal review  
-- **Reciprocal** (MEDIUM): Licenses with source disclosure requirements
-- **Notice/Permissive/Unencumbered** (LOW): Generally acceptable licenses
-- **Unknown** (UNKNOWN): Unidentified or unclear licenses
-
-**Example configuration:**
-```json
-{
-  "license": [
-    {
-      "name": "License compliance",
-      "actions": {
-        "new": "warn"
-      },
-      "rules": {
-        "severity": [
-          {"type": "eq", "value": "CRITICAL"},
-          {"type": "eq", "value": "HIGH"}
-        ]
-      }
-    }
-  ]
-}
-```
-
-### 3. Package Scanning
-
-**Purpose**: Track dependency changes between repository states
-
-**What it monitors:**
-- New packages added to project
-- Package version changes
-- Removed dependencies
-- Dependency relationship changes (when dependency_tree is enabled)
-
-**Change types tracked:**
-- **New**: Packages introduced in the feature branch
-- **Removed**: Packages removed from main in the feature branch
-- **Changed**: Packages with version differences
-- **Existing**: Packages present in both states
-
-**Example configuration:**
-```json
-{
-  "package": [
-    {
-      "name": "Dependency tracking",
-      "actions": {
-        "new": "info",
-        "removed": "warn"
-      },
-      "rules": {
-        "name": [
-          {"type": "contains", "value": "security"}
-        ]
-      }
-    }
-  ]
-}
-```
-
-### 4. Custom Validation
-
-**Purpose**: Enforce project-specific security and compliance requirements
-
-**Supported file types:**
-- **text**: Plain text files, scripts, configuration files
-- **json**: JSON configuration files, package manifests
-- **yaml/yml**: YAML files, CI/CD configs, Kubernetes manifests
-- **filesystem**: File and directory existence checks
-
-**Common validation rules:**
-- File content validation (contains, regex, etc.)
-- Required file presence
-- Configuration compliance
-- Security requirement enforcement
-
-**Example configuration:**
-```json
-{
-  "validation": [
-    {
-      "name": "Dockerfile security",
-      "path": "**/Dockerfile",
-      "type": "text",
-      "actions": {
-        "new": "block"
-      },
+      "name": "crit-high",
+      "actions": {"new": "block", "existing": "warn"},
       "rules": [
-        {
-          "type": "contains",
-          "value": "USER"
-        }
+        {"field": "Severity", "type": "eq", "value": "CRITICAL"},
+        {"field": "Severity", "type": "eq", "value": "HIGH"}
+      ],
+      "outputs": [
+        {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new"], "collapse": true}
       ]
     }
   ]
 }
 ```
+Governance focus: Gate net-new high severity risk while surfacing backlog separately (`existing` in non‑PR destination if desired).
 
-## How Scanning Types Work Together
+## 2. License
+Tracks license posture and category risk.
 
-### Comprehensive Security Coverage
+Key fields: `Severity`, `Category`, `PkgName`, `Name`, `Relationship`, `Children`, `Parents`, `Targets`.
 
-Codeward performs all four scanning types in a coordinated manner:
-
-1. **Trivy Scanner Execution**: Scans both main and feature branch repositories
-2. **Result Processing**: Extracts vulnerabilities, licenses, and packages from Trivy output
-3. **Diff Analysis**: Compares results between main and feature branches
-4. **Custom Validation**: Runs file validation rules on repository content
-5. **Policy Application**: Applies filtering rules and determines actions
-6. **Report Generation**: Creates formatted outputs based on configuration
-
-### Scanning Workflow
-
-```
-Repository Paths → Trivy Scanner → Raw Results → Diff Analysis → Policy Filtering → Report Generation
-```
-
-**Step-by-step process:**
-1. Execute Trivy on main branch repository
-2. Execute Trivy on feature branch repository (if different)
-3. Extract vulnerability, license, and package data
-4. Compare results to identify changes (new, existing, removed, changed)
-5. Run custom validation policies on file content
-6. Apply policy rules to filter results
-7. Generate reports in specified formats
-8. Send outputs to configured destinations
-
-## Change Types and Actions
-
-### Change Type Detection
-
-Codeward identifies four types of changes between main and feature branches:
-
-**NEW**: Items introduced in the feature branch
-- New vulnerabilities from added dependencies
-- New licenses from added packages
-- New packages in dependency tree
-- New validation failures
-
-**EXISTING**: Items present in both branches
-- Vulnerabilities present in both states
-- Licenses unchanged between branches
-- Packages with same versions
-- Validation issues in both states
-
-**REMOVED**: Items removed from main in feature branch
-- Vulnerabilities fixed by removing/updating packages
-- Licenses removed with package removal
-- Packages removed from dependencies
-- Validation issues resolved
-
-**CHANGED**: Items modified between branches
-- Vulnerabilities with different details
-- License changes in updated packages
-- Package version changes
-- Validation rule changes
-
-### Action Configuration
-
-Each change type can have different actions:
-
+Example (block Copyleft introductions):
 ```json
 {
-  "actions": {
-    "new": "block",      // Fail CI/CD on new issues
-    "existing": "warn",  // Log warnings for known issues
-    "removed": "info",   // Celebrate improvements
-    "changed": "warn"    // Review changes
-  }
+  "license": [
+    {
+      "name": "no-copyleft-new",
+      "actions": {"new": "block", "existing": "warn"},
+      "rules": [ {"field": "Category", "type": "eq", "value": "Copyleft"} ],
+      "outputs": [
+        {"format": "markdown", "template": "text", "destination": "git:pr", "title": "License Category Introductions", "changes": ["new"]}
+      ]
+    }
+  ]
 }
 ```
+Governance focus: Prevent prohibited license categories from entering via large or AI‑generated change sets.
 
-## Policy Integration
+## 3. Package
+Provides dependency inventory diffs (additions, removals, version changes).
 
-### Field-Specific Rules
+Key fields: `ID`, `Name`, `Version`, `Relationship`, `Children`, `Parents`, `Targets`.
 
-Each scanning type supports specific rule fields:
+Example (observe new direct dependencies):
+```json
+{
+  "package": [
+    {
+      "name": "new-direct",
+      "actions": {"new": "warn"},
+      "rules": [ {"field": "Relationship", "type": "eq", "value": "direct"} ],
+      "outputs": [ {"format": "json", "destination": "file:/results/new-direct.json", "changes": ["new"], "fields": ["Name","Version","Relationship"]} ]
+    }
+  ]
+}
+```
+Governance focus: Review newly introduced packages before merge; optionally escalate to block later.
 
-**Vulnerability Rules:**
-- `severity`: Filter by CRITICAL, HIGH, MEDIUM, LOW
-- `pkgName`: Filter by package name patterns
-- `vulnerabilityID`: Filter by CVE IDs
-- `status`: Filter by vulnerability status
+## 4. Validation (Custom Rules)
+Enforces structural & content expectations across files / trees.
 
-**License Rules:**
-- `category`: Filter by license category
-- `name`: Filter by license name patterns
-- `severity`: Filter by license risk level
+Requirements: each validation policy includes `type` (`text|json|yaml|yml|filesystem`) & `path`. Rule shapes vary—see [Policy System](./policy-system.md#validation-policy-rule-shapes).
 
-**Package Rules:**
-- `name`: Filter by package name patterns
-- `version`: Filter by version patterns
-- `relationship`: Filter by dependency type
+Example (require SECURITY.md present):
+```json
+{
+  "validation": [
+    {
+      "name": "require-security-md",
+      "type": "filesystem",
+      "path": ".",
+      "actions": {"new": "block"},
+      "rules": [ {"type": "exists", "path": "SECURITY.md"} ],
+      "outputs": [ {"format": "markdown", "template": "table", "destination": "git:pr", "title": "Required Governance Files"} ]
+    }
+  ]
+}
+```
+Governance focus: Guarantee required governance artifacts and disallow insecure patterns (e.g., unsafe CI steps, inline secrets).
 
-**Validation Rules:**
-- File type specific validation rules
-- Content-based validation (contains, regex, etc.)
-- Existence checks for files and directories
+## Unified Rule Model (Non-Validation)
+All vulnerability, license, and package policies use filter rule objects:
+```
+{"field":"<Field>","type":"<operator>","value":"<string>"}
+```
+Multiple rules are ORed. Use separate policies when intents differ (improves output clarity). Operator list & allowed fields: see [Policy System](./policy-system.md#allowed-record-fields-filter--display-canonical).
 
-### Output Customization
-
-Each scanning type can generate customized outputs:
-
-**Format Options:**
-- `markdown`: GitHub-friendly format
-- `html`: Web-displayable format
-- `json`: API-consumable format
-
-**Template Options:**
-- `table`: Traditional tabular display
-- `text`: Professional text format with emoji indicators
-
-**Destination Options:**
-- `log:stdout/stderr`: Console output
-- `file:path`: Local file storage
-- `git:pr`: GitHub PR comments
-- `git:issue`: GitHub issue creation
+## JSON Output
+All JSON outputs are arrays. Combined JSON destinations yield a single concatenated array (no wrapper object). See [Combining & Grouping](../output/combining-grouping.md) for rules & constraints.
 
 ## Best Practices
+| Goal | Recommendation |
+|------|----------------|
+| Minimize PR noise | Restrict PR outputs to `new` (and `changed` where risk shifts) |
+| Encourage remediation | Provide a separate output highlighting only `removed` |
+| Progressive enforcement | Start with blocking only critical (or Copyleft) introductions |
+| Deterministic automation | Emit one combined JSON artifact for dashboards |
+| Clarity | Small focused policies rather than large rule sets |
 
-### Configuration Strategy
-
-1. **Layered Security**: Use all four scanning types for comprehensive coverage
-2. **Appropriate Actions**: Use `block` for critical security issues, `warn` for compliance
-3. **Targeted Rules**: Focus rules on relevant security and compliance requirements
-4. **Regular Updates**: Keep Trivy database updated for latest vulnerability information
-
-### Performance Optimization
-
-1. **Selective Scanning**: Disable unnecessary policies for faster execution
-2. **Rule Optimization**: Use specific rules to reduce false positives
-3. **Output Optimization**: Configure only needed output destinations
-4. **Result Caching**: Use dependency_tree sparingly for large repositories
-
-### Integration Patterns
-
-1. **CI/CD Integration**: Focus on `new` changes to avoid blocking on existing issues
-2. **Development Workflow**: Use `warn` actions during development, `block` for production
-3. **Compliance Reporting**: Generate comprehensive reports for audit purposes
-4. **Security Review**: Use detailed outputs for security team review
-
-## Next Steps
-
-- **[Diff Analysis](./diff-analysis.md)** - Understanding how Codeward compares repository states
-- **[Policy System](./policy-system.md)** - Deep dive into policy configuration and behavior
-- **[Configuration Architecture](./configuration-architecture.md)** - Understanding the configuration system
-
-
-## 🚀 Performance and Efficiency
-
-### **Optimized Scanning**
-- **Incremental Analysis**: Only scan changes between branches
-- **Cached Results**: Reuse scan data for unchanged dependencies
-- **Parallel Processing**: Multiple scan types run concurrently
-- **Smart Filtering**: Focus on relevant changes
-
-### **Resource Management**
-```json
-{
-  "global": {
-    "ignore": {
-      "paths": ["node_modules/", "vendor/", ".git/"],
-      "file_extensions": [".log", ".tmp", ".cache"]
-    }
-  }
-}
-```
-
-## 📊 Output Integration
-
-All scanning types contribute to unified reporting:
-
-### **Combined Reports**
-```markdown
-# Security Scan Results
-
-## 🔒 Vulnerabilities (3 issues)
-- 1 CRITICAL: Requires immediate attention
-- 2 HIGH: Plan remediation within 7 days
-
-## 📜 Licenses (1 issue)  
-- 1 WARNING: GPL license review needed
-
-## 📦 Packages (5 changes)
-- 3 NEW: Added packages require review
-- 2 UPDATED: Version changes detected
-
-## ✅ Validations (2 issues)
-- 1 FAILED: Dockerfile security check
-- 1 PASSED: CI/CD configuration valid
-```
-
-### **Actionable Insights**
-Each scan type provides specific, actionable recommendations:
-
-- **Vulnerability**: Exact version to upgrade to
-- **License**: Alternative packages with compatible licenses
-- **Package**: Impact assessment of dependency changes
-- **Validation**: Specific configuration fixes required
-
----
-
-**Next Steps:**
-- Learn about [Diff-Based Analysis](./diff-analysis.md)
-- Understand the [Policy System](./policy-system.md)
-- Explore [Configuration Architecture](./configuration-architecture.md)
+## Common Mistakes & Fixes
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Rule schema error | Used legacy nested object | Convert to array of rule objects |
+| All items new | Missing `/main` mount or `CI_EVENT=pr` | Mount baseline & set env var |
+| Empty JSON | Rules filtered everything or `changes` too narrow | Broaden or relax filters temporarily |
+| Mixed formats in combined JSON | Combined group included markdown output | Restrict group to JSON outputs only |
+| Invalid field (e.g., license) | Non-existent field name | Use canonical field names (see Policy System) |
 
 ## Related Topics
-
 - [Diff-Based Analysis](./diff-analysis.md)
 - [Policy System](./policy-system.md)
-- [Vulnerability Policies](../policies/vulnerability.md)
-- [License Policies](../policies/license.md)
-- [Package Policies](../policies/package.md)
-- [Custom Validation](../policies/validation.md)
+- [Combining & Grouping](../output/combining-grouping.md)
+- [Output Formats](../output/formats.md)
+
+---
+Next: author policies — see the [Policy System](./policy-system.md).

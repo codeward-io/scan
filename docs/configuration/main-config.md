@@ -1,568 +1,223 @@
-# Main Configuration
+---
+id: main-config-reference
+title: Main Config Reference (config.json)
+description: Authoritative diff-aware policy configuration schema: global flags, policy arrays, rules, outputs, validation differences.
+keywords:
+  - config
+  - policy
+  - schema
+  - diff-aware
+  - governance
+---
+<!-- filepath: /Users/tambet/Documents/GitHub/codeward-io/docs/docs/configuration/main-config.md -->
+# Main Config Reference (`config.json`)
 
-The main configuration file (`config.json`) defines the security policies and scanning behavior for Codeward. This file contains policy definitions for vulnerability, license, package, and custom validation scanning.
+Authoritative reference for the versioned Codeward policy file. For an orientation guide see: [Configuration Overview](./overview.md). For deeper field/operator definitions see: [Policy System](../concepts/policy-system.md). Style conventions: [Style & Naming Guide](./style-naming-guide.md).
 
-## Configuration File Location
+Canonical change category order: `new, changed, removed, existing`.
 
-The main configuration file can be:
-- Named `config.json` in your repository root
-- Specified via the `CONFIG_PATH` environment variable
-- Auto-loaded from embedded defaults if no file is provided
+## Purpose
+Define what Codeward scans, how findings are filtered, which change categories trigger actions (`new | changed | removed | existing`), and how results are output. Runtime context (diff mounts, GitHub metadata, environment variables) is intentionally external.
 
-## Complete Configuration Example
-
+## Top-Level Shape
 ```json
 {
-  "global": {
-    "dependency_tree": false
-  },
-  "vulnerability": [
-    {
-      "name": "Critical vulnerability blocking",
-      "disabled": false,
-      "actions": {
-        "new": "block",
-        "existing": "warn",
-        "removed": "info",
-        "changed": "warn"
-      },
-      "rules": {
-        "severity": [
-          {"type": "eq", "value": "CRITICAL"},
-          {"type": "eq", "value": "HIGH"}
-        ]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
-          "changes": ["new", "existing"],
-          "title": "Security Vulnerabilities",
-          "comment": "Please review these security issues",
-          "collapse": true
-        }
-      ]
-    }
+  "global": { "dependency_tree": false },
+  "vulnerability": [ /* vulnerability policies */ ],
+  "license": [ /* license policies */ ],
+  "package": [ /* package policies */ ],
+  "validation": [ /* validation policies */ ]
+}
+```
+All arrays optional. Empty arrays are allowed for clarity.
+
+### Global
+| Key | Type | Effect |
+|-----|------|--------|
+| dependency_tree | boolean | Adds relationship enrichment fields (`Relationship`, `Parents`, `Children`, `Targets`) for package / license / vulnerability domains (slight performance cost). |
+
+---
+## Common Policy Schema (non‑Validation)
+```json
+{
+  "name": "crit-high-block",
+  "disabled": false,
+  "actions": {"new": "block", "existing": "warn", "removed": "info", "changed": "warn"},
+  "rules": [
+    {"field": "Severity", "type": "eq", "value": "CRITICAL"},
+    {"field": "Severity", "type": "eq", "value": "HIGH"}
   ],
-  "license": [
-    {
-      "name": "License compliance",
-      "disabled": false,
-      "actions": {
-        "new": "warn",
-        "existing": "info",
-        "removed": "info"
-      },
-      "rules": {
-        "severity": [
-          {"type": "eq", "value": "CRITICAL"},
-          {"type": "eq", "value": "HIGH"}
-        ]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["Name", "Category", "PkgName"]
-        }
-      ]
-    }
-  ],
-  "package": [
-    {
-      "name": "Package change tracking",
-      "disabled": false,
-      "actions": {
-        "new": "info",
-        "existing": "info",
-        "removed": "warn",
-        "changed": "info"
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "log:stdout",
-          "fields": ["Name", "Version", "Relationship"]
-        }
-      ]
-    }
-  ],
-  "validation": [
-    {
-      "name": "Dockerfile security",
-      "disabled": false,
-      "path": "**/Dockerfile",
-      "type": "text",
-      "actions": {
-        "new": "block",
-        "existing": "warn"
-      },
-      "rules": [
-        {
-          "type": "contains",
-          "value": "USER"
-        }
-      ],
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["key", "type", "value", "reason", "passing", "path"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-## Configuration Sections
-
-### Global Settings
-
-The `global` section contains settings that apply to all scanning policies:
-
-```json
-{
-  "global": {
-    "dependency_tree": false  // Enable/disable dependency relationship analysis
-  }
-}
-```
-
-**Available Options:**
-- `dependency_tree` (boolean): When `true`, Codeward analyzes and includes dependency relationships in package reports
-
-### Policy Types
-
-Codeward supports four types of policies, each with a consistent structure:
-
-#### Required Fields (All Policies)
-- `name` (string): Human-readable policy identifier
-
-#### Optional Fields (All Policies)
-- `disabled` (boolean): Set to `true` to disable the policy (default: `false`)
-- `actions` (object): Define actions for different change types
-- `rules` (object): Filter criteria for the policy  
-- `outputs` (array): Output configurations for reports
-
-### Vulnerability Policies
-
-Scan for security vulnerabilities using Trivy scanner:
-
-```json
-{
-  "vulnerability": [
-    {
-      "name": "Critical vulnerabilities",
-      "disabled": false,
-      "actions": {
-        "new": "block",        // Block on new critical issues
-        "existing": "warn",    // Warn on existing issues
-        "removed": "info",     // Info when issues are fixed
-        "changed": "warn"      // Warn on changed issues
-      },
-      "rules": {
-        "severity": [
-          {"type": "eq", "value": "CRITICAL"},
-          {"type": "eq", "value": "HIGH"}
-        ],
-        "pkgName": [
-          {"type": "contains", "value": "security"}
-        ],
-        "vulnerabilityID": [
-          {"type": "regex", "value": "CVE-2023-.*"}
-        ]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
-          "changes": ["new", "existing"],
-          "group_by": ["PkgName", "Severity"],
-          "title": "Security Vulnerabilities",
-          "comment": "Please review and fix these security issues",
-          "collapse": true
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Available Rule Fields:**
-- `severity`: CRITICAL, HIGH, MEDIUM, LOW
-- `pkgName`: Package name patterns
-- `vulnerabilityID`: CVE IDs or patterns
-- `pkgID`: Package ID patterns
-- `status`: Vulnerability status
-
-### License Policies
-
-Monitor license compliance across dependencies:
-
-```json
-{
-  "license": [
-    {
-      "name": "License compliance",
-      "disabled": false,
-      "actions": {
-        "new": "warn",
-        "existing": "info"
-      },
-      "rules": {
-        "severity": [
-          {"type": "eq", "value": "CRITICAL"},
-          {"type": "eq", "value": "HIGH"}
-        ],
-        "name": [
-          {"type": "contains", "value": "GPL"}
-        ]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["Name", "Category", "PkgName", "Severity"],
-          "group_by": ["Category"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Available Rule Fields:**
-- `severity`: License risk level (CRITICAL, HIGH, MEDIUM, LOW, UNKNOWN)
-- `name`: License name patterns
-- `pkgName`: Package name patterns
-
-### Package Policies
-
-Track dependency changes between repository states:
-
-```json
-{
-  "package": [
-    {
-      "name": "Dependency tracking",
-      "disabled": false,
-      "actions": {
-        "new": "info",      // Info on new dependencies
-        "removed": "warn",  // Warn on removed dependencies
-        "changed": "info"   // Info on version changes
-      },
-      "rules": {
-        "name": [
-          {"type": "hasPrefix", "value": "@types/"}
-        ],
-        "version": [
-          {"type": "contains", "value": "beta"}
-        ]
-      },
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "log:stdout",
-          "fields": ["Name", "Version", "Relationship"],
-          "changes": ["new", "removed"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Available Rule Fields:**
-- `name`: Package name patterns
-- `version`: Version patterns
-- `relationship`: Dependency relationship type
-
-### Validation Policies
-
-Custom file content validation:
-
-```json
-{
-  "validation": [
-    {
-      "name": "Dockerfile security",
-      "disabled": false,
-      "path": "**/Dockerfile",
-      "type": "text",
-      "actions": {
-        "new": "block",
-        "existing": "warn"
-      },
-      "rules": [
-        {
-          "type": "contains",
-          "value": "USER"
-        },
-        {
-          "type": "not_contains", 
-          "value": "root"
-        }
-      ],
-      "outputs": [
-        {
-          "format": "markdown",
-          "template": "table",
-          "destination": "git:pr",
-          "fields": ["key", "type", "value", "reason", "passing", "path"]
-        }
-      ]
-    }
-  ]
-}
-```
-
-**Required Fields:**
-- `path`: File path pattern (supports glob patterns)
-- `type`: File type (text, json, yaml, yml, filesystem)
-
-**Validation Types:**
-- `text`: Plain text files with regex/contains validation
-- `json`: JSON files with key-based validation
-- `yaml`/`yml`: YAML files (converted to JSON for validation)
-- `filesystem`: File/directory existence checks
-
-**Available Rule Types:**
-- `eq`, `ne`: Equals/not equals
-- `lt`, `gt`, `le`, `ge`: Numeric comparisons
-- `contains`, `not_contains`: Substring matching
-- `hasPrefix`, `hasSuffix`: String prefix/suffix
-- `regex`: Regular expression matching
-- `exists`, `not_exists`: Field/file existence
-
-## Output Configuration
-
-### Output Structure
-
-Each policy can have multiple outputs with different destinations and formats:
-
-```json
-{
   "outputs": [
-    {
-      "format": "markdown",           // Output format: markdown, html, json
-      "template": "table",            // Template: table or text (ignored for json)
-      "destination": "git:pr",        // Where to send the output
-      "fields": ["Field1", "Field2"], // Which fields to include
-      "changes": ["new", "existing"], // Which change types to report
-      "group_by": ["PkgName"],        // Fields to group results by
-      "title": "Report Title",        // Title for the output
-      "comment": "Additional info",   // Additional context
-      "collapse": true                // Collapse sections in GitHub
-    }
+    {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new","existing"], "collapse": true},
+    {"format": "json", "destination": "file:/results/vuln-diff.json", "changes": ["new","removed","changed"]}
   ]
 }
 ```
+Key Points:
+- `rules` is ALWAYS an array of objects: `{"field": string, "type": operator, "value": string|number}`.
+- Array entries are ORed (any rule passing keeps the record). Absence of `rules` means no filtering (all findings for the policy domain).
+- Only include actions you need (omitted change type defaults to no action → treated as informational if surfaced by outputs).
+- Multiple policies in the same domain can target different severities / subsets for progressive rollout.
 
-### Format and Template Options
+### Allowed Record Fields (Summary)
+Full canonical tables: [Policy System](../concepts/policy-system.md#allowed-record-fields-filter--display).
+| Domain | Common Filter / Display Fields (subset) |
+|--------|-----------------------------------------|
+| vulnerability | VulnerabilityID, PkgName, PkgID, Severity, InstalledVersion, FixedVersion, Status |
+| license | Name, Category, Severity, PkgName |
+| package | Name, Version, Relationship, Parents, Children |
+| validation | Key, Type, Value, Reason, Passing, Path |
 
-**Formats:**
-- `markdown`: Markdown format for GitHub/documentation
-- `html`: HTML format for web display
-- `json`: JSON format for API integration
+---
+## Validation Policy Differences
+Validation requires content or filesystem context.
 
-**Templates:** (ignored for JSON format)
-- `table`: Traditional table format (default, backward compatible)
-- `text`: Professional text format with emoji indicators and improved readability
+Additional Required Keys:
+| Key | Purpose |
+|-----|---------|
+| type | One of `text|json|yaml|yml|filesystem` |
+| path | File / directory / glob root for evaluation |
 
-### Destination Options
-
-**Local Output:**
-- `log:stdout`: Print to console output
-- `log:stderr`: Print to error output
-- `file:/path/to/file.md`: Save to local file
-
-**GitHub Integration:**
-- `git:pr`: Post as GitHub PR comment
-- `git:issue`: Create GitHub issue
-
-### Field Selection
-
-Specify which fields to include in reports:
-
-**Vulnerability Fields:**
-- `VulnerabilityID`, `PkgID`, `PkgName`, `InstalledVersion`, `FixedVersion`, `Status`, `Severity`
-
-**License Fields:**
-- `Severity`, `Category`, `PkgName`, `Name`
-
-**Package Fields:**
-- `ID`, `Name`, `Version`, `Relationship`, `Children`, `Parents`, `Targets`
-
-**Validation Fields:**
-- `key`, `type`, `value`, `reason`, `passing`, `path`
-
-### Change Type Filtering
-
-Control which types of changes to report:
-
+Example (filesystem existence):
 ```json
 {
-  "changes": ["new", "existing", "removed", "changed"]
+  "name": "require-security-md",
+  "type": "filesystem",
+  "path": ".",
+  "actions": {"new": "block"},
+  "rules": [ {"type": "exists", "path": "SECURITY.md"} ],
+  "outputs": [ {"format": "markdown", "template": "table", "destination": "git:pr", "title": "Required Governance Files"} ]
 }
 ```
-
-**Change Types:**
-- `new`: Items introduced in the feature branch
-- `existing`: Items present in both main and feature branch
-- `removed`: Items removed from main in the feature branch
-- `changed`: Items that changed between main and feature branch
-
-### Grouping Results
-
-Group results by any field combination:
-
+Example (text content):
 ```json
 {
-  "group_by": ["PkgName", "Severity"]  // Group by package and severity
+  "name": "dockerfile-nonroot-user",
+  "type": "text",
+  "path": "**/Dockerfile",
+  "actions": {"new": "block", "existing": "warn"},
+  "rules": [
+    {"type": "contains", "value": "USER"},
+    {"type": "not_contains", "value": "root"}
+  ],
+  "outputs": [ {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["key","type","value","reason","passing","path"]} ]
 }
 ```
+Validation rule object shapes differ (some use `path` instead of `field/value`). See: [Policy System — Validation Rule Shapes](../concepts/policy-system.md#validation-policy-rule-shapes).
 
-**Grouping Behavior:**
-- When `Severity` field is not included in grouping, shows highest severity from grouped items
-- Empty array means no grouping (shows individual items)
-- Multiple fields create nested groupings
-
-## Policy Management
-
-### Disabling Policies
-
-Individual policies can be disabled without removing them:
-
+---
+## Domain Examples
+### Vulnerability (Progressive Rollout Pair)
 ```json
-{
-  "vulnerability": [
-    {
-      "name": "Disabled policy",
-      "disabled": true,  // This policy will be skipped
-      "actions": {
-        "new": "block"
-      }
-      // ... rest of configuration
-    }
-  ]
-}
-```
-
-When disabled, Codeward logs the policy name for transparency.
-
-### Action Types
-
-Define what happens when issues are found:
-
-```json
-{
-  "actions": {
-    "new": "block",      // Exit with error code (fails CI/CD)
-    "existing": "warn",  // Log warning but continue
-    "removed": "info",   // Log information only
-    "changed": "warn"    // Log warning but continue
+[
+  {
+    "name": "crit-block",
+    "actions": {"new": "block", "existing": "warn"},
+    "rules": [ {"field": "Severity", "type": "eq", "value": "CRITICAL"} ],
+    "outputs": [ {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new","existing"], "collapse": true} ]
+  },
+  {
+    "name": "high-observe",
+    "actions": {"new": "warn"},
+    "rules": [ {"field": "Severity", "type": "eq", "value": "HIGH"} ],
+    "outputs": [ {"format": "json", "destination": "file:/results/highs.json", "changes": ["new"]} ]
   }
-}
+]
 ```
-
-**Action Behaviors:**
-- `info`: Logs information, continues execution
-- `warn`: Logs warning, continues execution
-- `block`: Logs error and exits with non-zero code (fails CI/CD)
-
-## Configuration Validation
-
-Codeward performs comprehensive validation on startup:
-
-### Validation Checks
-- JSON syntax and structure
-- Required field presence
-- Valid enumeration values (actions, formats, templates)
-- Field compatibility with policy types
-- Output destination format validation
-- Rule operator compatibility
-
-### Common Validation Errors
-
-**Missing Required Fields:**
+### License
+```json
+[
+  {
+    "name": "prohibited-gpl",
+    "actions": {"new": "block", "existing": "warn"},
+    "rules": [ {"field": "Name", "type": "contains", "value": "GPL"} ],
+    "outputs": [ {"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["Name","Category","Severity","PkgName"], "changes": ["new","changed"]} ]
+  }
+]
 ```
-vulnerability[0]: missing required field 'name'
+### Package
+```json
+[
+  {
+    "name": "removed-deps-warn",
+    "actions": {"removed": "warn"},
+    "rules": [ {"field": "Name", "type": "hasPrefix", "value": "@types/"} ],
+    "outputs": [ {"format": "markdown", "template": "table", "destination": "log:stdout", "fields": ["Name","Version","Relationship"], "changes": ["removed"]} ]
+  }
+]
 ```
+### Validation (text) — shown earlier
 
-**Invalid Action Values:**
+---
+## Rule Operators (Summary)
+| Operator | Meaning |
+|----------|---------|
+| eq / ne | Equality / inequality |
+| lt / gt / le / ge | Numeric comparisons (where applicable) |
+| contains / not_contains | Substring match |
+| hasPrefix / hasSuffix | String edge match |
+| regex | Regular expression (RE2 compatible) |
+| exists / not_exists | Presence (validation / filesystem) |
+
+Refer to [Policy System](../concepts/policy-system.md#rule-operators) for authoritative list and domain applicability.
+
+---
+## Outputs (Quick Reference)
+Minimal per-policy output object:
+```json
+{"format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","Severity"], "changes": ["new"]}
 ```
-vulnerability[0].actions.new: invalid action 'fail', must be 'info', 'warn', or 'block'
-```
+Common keys: `format`, `template` (omit for JSON), `destination`, `fields`, `changes`, `group_by`, `combined`, `collapse`, `title`, `comment`.
 
-**Invalid Format/Template:**
-```
-vulnerability[0].outputs[0]: invalid format 'txt', must be 'markdown', 'html', or 'json'
-vulnerability[0].outputs[0]: invalid template 'custom', must be 'table' or 'text'
-```
+Detailed formatting / destinations: [Output Formats](../output/formats.md), [Output Destinations](../output/destinations.md).
 
-**Field Compatibility:**
-```
-license[0].outputs[0]: field 'VulnerabilityID' is not valid for license outputs
-```
+Combined JSON outputs must all be JSON and share a destination (enforced). Markdown/HTML may share a comment thread when combined.
 
-## Environment Variables
+Combined JSON semantics (anywhere in this file): a single concatenated array per destination (no wrapper object) when `combined:true` outputs share format+destination.
 
-**Configuration Loading:**
-- `CONFIG_PATH`: Path to main configuration file
-- `PRIVATE_CONFIG_PATH`: Path to private configuration file
+---
+## Actions
+| Action | Effect | Typical Use |
+|--------|--------|-------------|
+| info | Record only (non-blocking) | Baseline visibility |
+| warn | Non-blocking signal (non-zero severity) | Progressive rollout step |
+| block | Fails run (non-zero exit) | Critical guardrail |
 
-**GitHub Integration:** (required for `git:pr` and `git:issue` destinations)
-- `GITHUB_TOKEN`: GitHub API token
-- `GITHUB_OWNER`: Repository owner
-- `GITHUB_REPO`: Repository name
-- `GITHUB_PR_NR`: Pull request number
-- `CI_EVENT`: Event type (`pr` or `main`)
+Progressive enforcement pattern: start with `block` only for CRITICAL; later add HIGH; then gradually include other categories as backlog shrinks.
 
-## Default Configuration Behavior
+---
+## AI Governance Rationale
+AI‑assisted commits can introduce high-severity vulnerabilities or prohibited licenses at scale. Diff‑aware policies let you block only net‑new critical risk while still surfacing historical issues for phased remediation, maintaining developer velocity without silent regression.
 
-If no `CONFIG_PATH` is provided, Codeward uses embedded defaults:
+---
+## Common Mistakes & Fixes
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Rules ignored | Used legacy nested object (e.g. `"rules": { "severity": [...] }`) | Replace with array of `{"field":"Severity","type":"eq","value":"CRITICAL"}` entries |
+| Everything marked new | Missing main branch mount or `CI_EVENT=pr` | Provide `/main`, `/branch` volumes + set `CI_EVENT=pr` |
+| Block not triggered | Only `existing` findings present | Ensure actions include `new` and thresholds capture net‑new items |
+| Validation rule error | Missing `type` / `path` for validation policy | Include both required keys |
+| Mixed JSON + markdown in combined output | Incompatible formats with `combined:true` | Use uniform format or separate outputs |
+| Unsupported field in `fields` | Field not in allowed domain set | Check allowed field tables; remove or adapt |
 
-**CI Environment:**
-- `CI_EVENT=pr`: Compares main vs branch with GitHub integration
-- `CI_EVENT=main`: Scans main branch only
-- Auto-detects CI environment based on environment variables
-
-**Local Development:**
-- Basic vulnerability and license scanning
-- Console output destinations
-- Development-friendly actions (warn instead of block)
-
+---
 ## Best Practices
+| Goal | Recommendation |
+|------|---------------|
+| Noise reduction | Limit PR outputs to `new` + `changed` changes; send `existing` to file/issue |
+| Explainability | Include fields that justify the action (e.g. `Severity`, `FixedVersion`) |
+| Progressive rollout | Use multiple policies per domain for staged enforcement |
+| Observability | At least one JSON output per critical policy for dashboards |
+| Maintainability | Small focused policies > one large multi-purpose policy |
+| Reusability | Keep environment-dependent values (paths, tokens) out of config file |
 
-### Configuration Organization
-- Keep policies focused and well-named
-- Use descriptive titles and comments for outputs
-- Group related rules within policies
-- Test configurations locally before deployment
+---
+## Related & Next Steps
+- [Policy System](../concepts/policy-system.md)
+- [Diff-Based Analysis](../concepts/diff-analysis.md)
+- [Output Formats](../output/formats.md)
+- [Output Destinations](../output/destinations.md)
+- [Configuration Overview](./overview.md)
 
-### Performance Considerations
-- Disable unnecessary policies for faster scans
-- Use specific rules to reduce noise
-- Consider output destinations based on team workflow
-- Group results appropriately for readability
-
-### Security Best Practices
-- Use `block` action for critical security issues
-- Monitor license compliance with appropriate actions
-- Validate security-critical files (Dockerfiles, configs)
-- Regular review and update of policies
-
-## Next Steps
-
-- **[Policy System](../concepts/policy-system.md)** - Understanding policy behavior
-- **[Output Formats](../output/formats.md)** - Detailed output configuration
+---
+Minimal final reminder: use array-based `rules` everywhere (except specialized validation rule forms) and keep runtime context in environment variables, not the config.
