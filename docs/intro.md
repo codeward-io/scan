@@ -1,69 +1,87 @@
 # Welcome to Codeward
 
-**Codeward** helps you govern code changes — human or AI‑generated — before they merge. It performs policy‑driven analysis (vulnerabilities, licenses, package diffs, and custom validations) with diff awareness so you focus only on what changed and the risk it introduces.
+**Codeward** is a policy-driven security scanner that governs code changes before they merge. It detects vulnerabilities, license issues, package changes, and policy violations — focusing only on what's new or changed so reviewers aren't overwhelmed by existing backlog.
 
-## Executive TL;DR
-- Diff-aware policies gate allow to focus on net-new or modified risk in PRs. While scheduled scans can be used to display all existing issues.
-- Single configuration governs vulnerabilities, licenses, packages, and validations with `info | warn | block` actions.
-- Deterministic Markdown, HTML & JSON outputs (concatenated arrays) for both reviewers and automation.
+## Why Codeward?
 
-## Why Codeward (Now)
-Modern development velocity and AI‑assisted generation increase the risk of silently adding vulnerable dependencies, incompatible licenses, or violating internal quality rules. Codeward inserts an automated, explainable governance layer into your workflow so risky changes are surfaced early and (if you wish) blocked.
+Modern development is fast. AI-assisted code generation makes it faster. This velocity increases the risk of silently introducing:
 
-## What Codeward Scans
-- **Vulnerabilities** (embedded Trivy) across packages
-- **Licenses** with severity / category for compliance posture
-- **Package Changes** (new / removed / changed / existing) between main and a feature branch
-- **Custom Validations** (text / JSON / YAML / filesystem existence rules) for project conventions
+- **Vulnerable dependencies** with known CVEs
+- **Incompatible licenses** that create legal exposure  
+- **Unwanted packages** that expand attack surface
+- **Policy violations** in configs, Dockerfiles, or CI workflows
 
-## How It Works (High Level)
-1. (PRs) Compare main vs feature branch → classify changes: new, changed, removed, existing (see [Diff-Based Analysis](./concepts/diff-analysis.md)).
-2. Apply configured policies (filters + actions per change type — see [Policy System](./concepts/policy-system.md)).
-3. Generate reports (Markdown, HTML, JSON array) — optionally grouped or combined.
-4. Deliver to destinations: files, logs, PR comment, or issue (event‑aware).
-5. Enforce gates: any section with a `block` action sets a non‑zero exit.
+Codeward catches these issues automatically, explains what's wrong, and can block merges when critical risks are introduced.
 
-## Key Benefits
-- **Diff‑Aware Noise Reduction**: Possibility to focus reviewers on the delta — not legacy backlog.
-- **Backlog Visibility**: Baseline or scheduled scans emit full existing issue for tracking and trend analysis.
-- **Policy Gates**: Consistent, codified rules (security, license, validation) with `info | warn | block` actions per change category.
-- **AI Governance Support**: Surfaces license drift, new vulnerable libs, and broken conventions often introduced by automated code generation.
-- **Deterministic Outputs**: Stable JSON array schema for automation; clean Markdown/HTML for humans.
-- **Multi‑Destination Delivery**: PR comment, issue, logs, or files — configurable per policy.
-- **Composable Configuration**: Fine‑grained field selection, grouping, change filtering, combined reports.
+## What It Scans
 
-## Quick Start
-Choose an integration path:
-- **GitHub Actions**: Use the published action for automatic diff scans. See [GitHub Actions installation](./installation/github-actions.md).
-- **Docker (any CI)**: Run the container directly. See [Docker installation](./installation/docker.md).
+| Scan Type | What It Detects |
+|-----------|-----------------|
+| **Vulnerabilities** | CVEs in dependencies (via embedded Trivy) with severity, fix versions |
+| **Licenses** | License names, categories, and risk levels for compliance |
+| **Packages** | New, removed, or changed dependencies between branches |
+| **Validations** | Custom rules on files (text, JSON, YAML) and filesystem structure |
+| **PR Validations** | Rules on PR metadata, size, files changed, and patch content |
 
-Then explore policies and configuration:
-- Scanning concepts: [Scanning Types](./concepts/scanning-types.md)
-- Policy model: [Policy System](./concepts/policy-system.md)
-- Configuration overview: [Configuration Overview](./configuration/overview.md)
-- Main configuration reference: [Main Config](./configuration/main-config.md)
+## How It Works
 
-## Policy & Actions Overview
-Removed redundancy — canonical definitions live in [Diff-Based Analysis](./concepts/diff-analysis.md) and [Policy System](./concepts/policy-system.md).
+1. **Scan** both branches (main and feature) for vulnerabilities, licenses, and packages
+2. **Diff** the results to classify each finding: `new`, `changed`, `removed`, or `existing`
+3. **Filter** findings through your policy rules
+4. **Act** on each category with `info`, `warn`, or `block`
+5. **Report** results to PR comments, issues, files, or webhooks
 
-## Reporting
-- **Formats**: Markdown, HTML, JSON (uniform array schema). PR or diff focused outputs can display all categories `new`,`changed`, `removed`, `existing` while baseline can only display `existing` issues;
-- **Templates** (non‑JSON): table or text
-- **Customization**: Select fields, group related findings, filter by change categories, combine multiple policies into one artifact.
-See: [Output Formats](./output/formats.md) and [Destinations](./output/destinations.md).
+The key insight: **only `new` findings can block your PR**, so existing technical debt doesn't slow you down while you address it separately.
 
-## Production Readiness Features
-- Deterministic ordering & severity handling
-- Caching for faster re‑runs (Trivy + internal cache)
-- Event‑aware GitHub posting (PR comment vs issue)
-- Clear non‑features (no SARIF, no auto‑remediation) to avoid surprise
+## Key Features
 
-## Next Steps
-1. Install via your preferred method (Actions or Docker).
-2. Run an initial baseline scan to capture existing issues.
-3. Start with starter configs: [Starter Configs](./examples/starter-configs.md).
-4. Tailor or add policies (license, vulnerability, package, validation).
-5. Add or tighten `block` actions to enforce standards once confident.
+- **Diff-aware**: Focus on net-new risk, not legacy backlog
+- **Policy-as-code**: Define rules in a single JSON config file  
+- **Flexible actions**: `info` (log only), `warn` (visible but passes), `block` (fails CI)
+- **Multiple outputs**: PR comments, GitHub issues, JSON files, webhooks
+- **Zero config option**: Works out-of-box with sensible defaults
+- **Deterministic**: Same inputs produce identical outputs for automation
+
+## Quick Example
+
+Block new critical vulnerabilities in PRs:
+
+```json
+{
+  "vulnerability": [{
+    "name": "block-critical",
+    "actions": { "new": "block", "existing": "warn" },
+    "rules": [
+      { "field": "Severity", "type": "eq", "value": "CRITICAL" }
+    ],
+    "outputs": [{
+      "format": "markdown",
+      "destination": "git:pr",
+      "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
+      "changes": ["new"]
+    }]
+  }]
+}
+```
+
+This policy:
+- **Blocks** PRs that introduce new critical vulnerabilities
+- **Warns** about existing critical vulnerabilities (doesn't block)
+- **Posts** a markdown table to the PR comment showing only new issues
+
+## Get Started
+
+**Fastest path**: Add the GitHub Action with zero config → [Quick Start](./quick-start.md)
+
+**Choose your installation**:
+- [GitHub Actions](./installation/github-actions.md) — easiest for GitHub repos
+- [Docker](./installation/docker.md) — works with any CI system
+
+**Learn more**:
+- [Configuration](./configuration.md) — full config reference
+- [Policies](./policies.md) — all policy types explained
+- [Outputs](./outputs.md) — formats, destinations, combining
 
 ---
-**Move from reactive reviews to proactive governance.** Begin with the [GitHub Actions guide](./installation/github-actions.md) or the [Docker guide](./installation/docker.md).
+
+**Stop reviewing security issues manually.** Let Codeward surface what matters and block what's critical.

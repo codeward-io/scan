@@ -17,7 +17,7 @@ docker run --rm \
 Pin an explicit version for reproducibility (`:v0.0.1`). `:latest` is fine for short experiments.
 
 ## Diff Scan (PR / Change Review)
-Compare a feature branch checkout to the main branch to focus only on `new`, `changed`, `removed`, `existing` items (see [Diff-Based Analysis](../concepts/diff-analysis.md)).
+Compare a feature branch checkout to the main branch to focus only on `new`, `changed`, `removed`, `existing` items.
 ```bash
 docker run --rm \
   -v /abs/path/to/main-checkout:/main:rw \
@@ -67,7 +67,7 @@ If omitted, embedded defaults (and any `config.json` discovered in repo paths) a
 | CONFIG_PATH | Optional | Path to primary config file |
 | PRIVATE_CONFIG_PATH | Optional | Path to private config file |
 
-Dependency graph filtering (e.g., `Relationship`, Parents / Children fields) requires enabling `global.dependency_tree=true` in configuration (see [Configuration Overview](../configuration/overview.md)).
+Dependency graph filtering (e.g., `Relationship`, Parents / Children fields) requires enabling `global.dependency_tree=true` in configuration (see [Configuration](../configuration.md)).
 
 ## Performance Tips
 - Reuse a persistent cache volume for faster vulnerability DB updates.
@@ -96,7 +96,7 @@ Dependency graph filtering (e.g., `Relationship`, Parents / Children fields) req
 (For clearer progressive enforcement prefer separate policies: one blocking CRITICAL, one observing HIGH.)
 
 ## Troubleshooting
-Most runtime / classification issues are centralized in the [Troubleshooting & FAQ](../operations/troubleshooting-faq.md). Only unique container-specific notes are listed here:
+Most runtime / classification issues are centralized in [Troubleshooting](../troubleshooting.md). Only unique container-specific notes are listed here:
 | Symptom | Cause | Resolution |
 |---------|-------|------------|
 | Permission denied writing results | Host directory not writable by container user | Adjust ownership or omit a custom `--user` flag |
@@ -110,7 +110,7 @@ See FAQ for: empty outputs, mixed-format combine errors, PR comment absence, etc
 |------|---------------|
 | Reproducibility | Pin the image tag instead of using `:latest` |
 | Low-noise PRs | Restrict PR markdown outputs to `new` (and essential `changed`) |
-| Automation | Produce one combined JSON artifact (concatenated array) — see [Combining & Grouping](../output/combining-grouping.md) |
+| Automation | Produce one combined JSON artifact (concatenated array) — see [Outputs](../outputs.md) |
 | Dependency graph filters | Enable `global.dependency_tree` before using relationship fields |
 | Token hygiene | Use repo-scoped, least-privilege token for git destinations |
 
@@ -121,9 +121,8 @@ See FAQ for: empty outputs, mixed-format combine errors, PR comment absence, etc
 
 ## Related Topics
 - [GitHub Actions](./github-actions.md)
-- [Configuration Overview](../configuration/overview.md)
-- [Combining & Grouping](../output/combining-grouping.md)
-- [Starter Configs](../examples/starter-configs.md)
+- [Configuration](../configuration.md)
+- [Outputs](../outputs.md)
 
 ---
-Next: define or extend policies — see the [Policy System](../concepts/policy-system.md).
+Next: define or extend policies — see [Policies](../policies.md).
