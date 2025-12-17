@@ -1,71 +1,100 @@
 # Quick Start
 
-A 5-minute path to seeing Codeward diff-aware policy results on a pull request.
+Get Codeward scanning your PRs in under 3 minutes.
 
-## 1. Add GitHub Action
+## 1. Add the GitHub Action
+
+Create `.github/workflows/codeward.yml`:
+
 ```yaml
 name: Codeward Scan
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
+
 jobs:
   scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      pull-requests: write
+      issues: write
     steps:
-      - uses: actions/checkout@v4
-      - name: Codeward Scan
-        uses: codeward-io/scan-action@v1
+      - uses: codeward-io/scan@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## 2. (Optional) Configuration
-You can run Codeward with **no config file**: an opinionated built-in default is applied (it includes `block` actions for new vulnerability severities (CRITICAL/HIGH/MEDIUM) and certain license severities). If you prefer an initial *non-blocking* / observe-only rollout, add a minimal `config.json` overriding those actions to `warn` (or `info`). See full default: [Auto-Applied Default](configuration/overview.md#default-config).
+That's it. Commit and open a PR.
 
-### Option A: Zero Config (opinionated blocking defaults)
-Do nothing. The default will immediately fail the run if new qualifying vulnerabilities or license issues are detected. Use this if you intentionally want strong guardrails from day one.
+## 2. What Happens
 
-### Option B: Non-Blocking Minimal Config (override defaults)
-Create `.codeward/config.json` (JSON, not YAML) to downgrade initial enforcement:
+**On pull requests**: Codeward compares your branch to `main` and posts a comment showing:
+- New vulnerabilities introduced by your changes
+- New license issues
+- Package changes
+
+**On push to main**: Codeward scans the current state and can create issues for existing problems.
+
+## 3. Default Behavior
+
+With no config file, Codeward uses sensible defaults:
+
+- **Blocks** new CRITICAL, HIGH, and MEDIUM vulnerabilities
+- **Blocks** new UNKNOWN, CRITICAL, and HIGH license issues  
+- **Warns** about existing issues (doesn't block)
+- **Posts** results to PR comments
+
+## 4. Optional: Customize
+
+Create `.codeward.json` in your repo root to customize behavior.
+
+### Start Non-Blocking (Observe First)
+
 ```json
 {
-  "vulnerability": [
-    {
-      "name": "critical-warn",
-      "actions": { "new": "warn" },
-      "rules": [ { "field": "Severity", "type": "eq", "value": "CRITICAL" } ],
-      "outputs": [
-        { "format": "markdown", "template": "table", "destination": "git:pr", "fields": ["VulnerabilityID","PkgName","Severity","FixedVersion"], "changes": ["new"] }
-      ]
-    }
-  ]
+  "vulnerability": [{
+    "name": "observe-all",
+    "actions": { "new": "warn", "existing": "info" },
+    "rules": [
+      { "field": "Severity", "type": "eq", "value": "CRITICAL" },
+      { "field": "Severity", "type": "eq", "value": "HIGH" }
+    ],
+    "outputs": [{
+      "format": "markdown",
+      "destination": "git:pr",
+      "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
+      "changes": ["new"]
+    }]
+  }]
 }
 ```
-Key points:
-- JSON schema aligns with the [Main Config Reference](configuration/main-config.md).
-- Arrays per domain (`vulnerability`, `license`, `package`, `validation`). Omit domains you are not using yet.
-- `actions` keys use canonical change categories: `new, changed, removed, existing`.
-- Only `new` is actioned here (non-blocking `warn`) for progressive rollout. Add additional policies later to expand coverage.
 
-### Option C (Optional): Start Progressive Blocking
-Add a second policy (e.g. HIGH severities with `warn`) while keeping CRITICAL at `block`—see Starter Configs for patterns.
+### Block Only Critical
 
-## 3. Open a Pull Request
-Add or update a dependency to trigger a diff. The Action posts a summary comment.
-
-## 4. Interpret the Output
-- New critical vulnerabilities: flagged under Vulnerabilities table (or JSON if configured)
-- No existing backlog noise in PR view; historical issues appear only if you add outputs targeting `existing` or run baseline scans
-- Exit code behavior depends on your chosen option (A may block, B will not)
+```json
+{
+  "vulnerability": [{
+    "name": "block-critical",
+    "actions": { "new": "block" },
+    "rules": [
+      { "field": "Severity", "type": "eq", "value": "CRITICAL" }
+    ],
+    "outputs": [{
+      "format": "markdown",
+      "destination": "git:pr",
+      "fields": ["VulnerabilityID", "PkgName", "Severity", "FixedVersion"],
+      "changes": ["new"]
+    }]
+  }]
+}
+```
 
 ## 5. Next Steps
-- Escalate CRITICAL from `warn` to `block` once stable (if starting with Option B)
-- Add license / package / validation policies
-- Route existing backlog to a file or issue for remediation tracking
-- Configure combined JSON or additional markdown outputs
-- Adopt progressive enforcement (see Progressive Enforcement page)
 
-## What You Get
-- Diff-aware focus: only new & changed risk surfaces in PRs
-- Deterministic JSON arrays for automation
-- Flexible starting posture (blocking defaults or non-blocking override) plus baseline/backlog inventory support
-
-See also: [Starter Configs](examples/starter-configs.md), [Policy System](concepts/policy-system.md), [Glossary](concepts/glossary.md), [Main Config Reference](configuration/main-config.md).
+- **Add more policies**: Block risky licenses, track package changes → [Policies](./policies.md)
+- **Configure outputs**: JSON files, webhooks, issue creation → [Outputs](./outputs.md)  
+- **Full config reference**: All options explained → [Configuration](./configuration.md)
+- **Use Docker**: For non-GitHub CI systems → [Docker Installation](./installation/docker.md)

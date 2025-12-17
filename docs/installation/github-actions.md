@@ -206,7 +206,7 @@ Skip scans on non‑impacting changes via a path filter action (e.g., `dorny/pat
 }
 ```
 Notes:
-- JSON outputs are arrays; combined JSON destinations produce a single concatenated array (see [Combining & Grouping](../output/combining-grouping.md)).
+- JSON outputs are arrays; combined JSON destinations produce a single concatenated array (see [Outputs](../outputs.md)).
 - `destination` controls where output goes; `git:pr` ignored unless `CI_EVENT=pr`.
 - Empty sections omitted automatically.
 
@@ -218,7 +218,7 @@ Early PR integration detects:
 - High‑risk changes hidden in large automated diffs
 
 ## Troubleshooting
-Centralized: see [Troubleshooting & FAQ](../operations/troubleshooting-faq.md). Unique GitHub issues:
+Centralized: see [Troubleshooting](../troubleshooting.md). Unique GitHub issues:
 | Issue | Cause | Fix |
 |-------|-------|-----|
 | 403 pulling image | Missing `packages: read` permission | Add permission |
@@ -237,9 +237,8 @@ Centralized: see [Troubleshooting & FAQ](../operations/troubleshooting-faq.md). 
 
 ## Related Topics
 - [Docker Setup](./docker.md)
-- [Configuration Overview](../configuration/overview.md)
-- [Combining & Grouping](../output/combining-grouping.md)
-- [Starter Configs](../examples/starter-configs.md)
+- [Configuration](../configuration.md)
+- [Outputs](../outputs.md)
 
 ---
-Next: refine policies — see the [Main Config Reference](../configuration/main-config.md).
+Next: refine policies — see [Configuration](../configuration.md).

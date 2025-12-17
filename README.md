@@ -97,44 +97,19 @@ PR example:
 - Permissions on artifacts: container runs with host UID; ensure workspace writable.
 
 ## Learn more
-Structured documentation lives under `docs/`.
+Comprehensive documentation is available in the `docs/` directory:
 
-Getting Started
-- Overview / Intro: [docs/intro.md](docs/intro.md)
-- Quick Start: [docs/quick-start.md](docs/quick-start.md)
-- Install (GitHub Actions): [docs/installation/github-actions.md](docs/installation/github-actions.md)
-- Install (Docker): [docs/installation/docker.md](docs/installation/docker.md)
+### Getting Started
+- **[Introduction](docs/intro.md)** — Overview of Codeward, why use it, what it scans, and key features
+- **[Quick Start](docs/quick-start.md)** — Get up and running in 3 minutes with minimal configuration
+- **[GitHub Actions Installation](docs/installation/github-actions.md)** — Detailed GitHub Actions setup and integration
+- **[Docker Installation](docs/installation/docker.md)** — Run Codeward with Docker for local or CI/CD use
 
-Core Concepts
-- Diff Analysis (why only changed items): [docs/concepts/diff-analysis.md](docs/concepts/diff-analysis.md)
-- Policy System & Rule Model: [docs/concepts/policy-system.md](docs/concepts/policy-system.md)
-- Scanning Types: [docs/concepts/scanning-types.md](docs/concepts/scanning-types.md)
-- Progressive Enforcement: [docs/operations/progressive-enforcement.md](docs/operations/progressive-enforcement.md)
-- Security / Trust Model: [docs/operations/security-trust-model.md](docs/operations/security-trust-model.md)
-- Performance & Caching: [docs/operations/performance-caching.md](docs/operations/performance-caching.md)
-- Glossary: [docs/concepts/glossary.md](docs/concepts/glossary.md)
-
-Configuration
-- Overview: [docs/configuration/overview.md](docs/configuration/overview.md)
-- Main Config Reference: [docs/configuration/main-config.md](docs/configuration/main-config.md)
-- Style & Naming Guide: [docs/configuration/style-naming-guide.md](docs/configuration/style-naming-guide.md)
-
-Policies
-- License: [docs/policies/license.md](docs/policies/license.md)
-- Package: [docs/policies/package.md](docs/policies/package.md)
-- Vulnerability: [docs/policies/vulnerability.md](docs/policies/vulnerability.md)
-- Validation: [docs/policies/validation.md](docs/policies/validation.md)
-
-Outputs
-- Formats: [docs/output/formats.md](docs/output/formats.md)
-- Destinations: [docs/output/destinations.md](docs/output/destinations.md)
-- Combining & Grouping: [docs/output/combining-grouping.md](docs/output/combining-grouping.md)
-
-Examples
-- Starter Configs: [docs/examples/starter-configs.md](docs/examples/starter-configs.md)
-
-Operations & Support
-- Troubleshooting / FAQ: [docs/operations/troubleshooting-faq.md](docs/operations/troubleshooting-faq.md)
+### Core Documentation
+- **[Configuration](docs/configuration.md)** — Complete reference for `.codeward.json` config file, global settings, and policy structure
+- **[Policies](docs/policies.md)** — All policy types explained: vulnerability, license, package, validation, and PR validation with examples and field references
+- **[Outputs](docs/outputs.md)** — Configure formats (markdown, HTML, JSON), destinations (PR comments, issues, files), templates, grouping, and combining outputs
+- **[Troubleshooting](docs/troubleshooting.md)** — Common issues, environment variables, performance tips, and security notes
 
 Narrative Kernel
 "Codeward helps teams govern rapidly produced, AI-assisted code by enforcing security, license, and quality policies on every change. Diff-aware scanning highlights only what changed, reducing review noise and preventing silent risk introduction before merge."
