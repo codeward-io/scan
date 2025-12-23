@@ -28,24 +28,24 @@ Complete reference for all environment variables:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `CI` | Recommended | Set to `true` to enable CI behaviors |
-| `CI_EVENT` | Yes | `pr` for diff mode, `main` for single-branch scan |
+| `CODEWARD_CI` | Recommended | Set to `true` to enable CI behaviors |
+| `CODEWARD_CI_EVENT` | Yes | `pr` for diff mode, `main` for single-branch scan |
 
 ### GitHub Integration
 
 | Variable | Required For | Description |
 |----------|--------------|-------------|
-| `GITHUB_TOKEN` | `git:pr`, `git:issue` | GitHub API token |
-| `GITHUB_OWNER` | `git:pr`, `git:issue` | Repository owner/organization |
-| `GITHUB_REPO` | `git:pr`, `git:issue` | Repository name |
-| `GITHUB_PR_NR` | `git:pr` | Pull request number |
+| `CODEWARD_GITHUB_TOKEN` | `git:pr`, `git:issue` | GitHub API token |
+| `CODEWARD_GITHUB_OWNER` | `git:pr`, `git:issue` | Repository owner/organization |
+| `CODEWARD_GITHUB_REPO` | `git:pr`, `git:issue` | Repository name |
+| `CODEWARD_GITHUB_PR_NUMBER` | `git:pr` | Pull request number |
 
 ### Configuration
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `CONFIG_PATH` | No | Override config file path |
-| `PRIVATE_CONFIG_PATH` | No | Path to private config overrides |
+| `CODEWARD_CONFIG_PATH` | No | Override config file path |
+| `CODEWARD_PRIVATE_CONFIG_PATH` | No | Path to private config overrides |
 
 ### Docker Volumes
 

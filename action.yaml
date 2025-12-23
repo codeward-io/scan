@@ -68,12 +68,12 @@ runs:
         -v ${PWD}/results:/results:rw \
         -v ${PWD}/cache:/.cache:rw \
         --user ${UID} \
-        -e GITHUB_TOKEN=${{ inputs.token }} \
-        -e GITHUB_OWNER=${{ github.repository_owner }} \
-        -e GITHUB_REPO=${{ github.event.repository.name }} \
-        -e GITHUB_PR_NR=${{ inputs.pr_number }} \
-        -e CI_EVENT="pr" \
-        -e CI=true \
+        -e CODEWARD_GITHUB_TOKEN=${{ inputs.token }} \
+        -e CODEWARD_GITHUB_OWNER=${{ github.repository_owner }} \
+        -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
+        -e CODEWARD_GITHUB_PR_NUMBER=${{ inputs.pr_number }} \
+        -e CODEWARD_CI_EVENT="pr" \
+        -e CODEWARD_CI=true \
         ghcr.io/codeward-io/scan:latest
 
     - name: Run scanner without branch
@@ -85,9 +85,9 @@ runs:
         -v ${PWD}/results:/results:rw \
         -v ${PWD}/cache:/.cache:rw \
         --user ${UID} \
-        -e GITHUB_TOKEN=${{ inputs.token }} \
-        -e GITHUB_OWNER=${{ github.repository_owner }} \
-        -e GITHUB_REPO=${{ github.event.repository.name }} \
-        -e CI_EVENT="main" \
-        -e CI=true \
+        -e CODEWARD_GITHUB_TOKEN=${{ inputs.token }} \
+        -e CODEWARD_GITHUB_OWNER=${{ github.repository_owner }} \
+        -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
+        -e CODEWARD_CI_EVENT="main" \
+        -e CODEWARD_CI=true \
         ghcr.io/codeward-io/scan:latest
