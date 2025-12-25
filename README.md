@@ -3,7 +3,7 @@
 Scan your repository for policy, license, vulnerability, and validation issues before merge. Codeward provides diff-aware scanning (focus only on what changed) to govern AI-assisted and human code changes with transparent, deterministic outputs (Markdown / HTML / JSON).
 
 - **Image**: `ghcr.io/codeward-io/scan:latest`
-- **Action**: `codeward-io/scan@v0.0.1` (pin to a release)
+- **Action**: `codeward-io/scan@v0.1.0` (pin to a release)
 - **Documentation**: [https://docs.codeward.io/](https://docs.codeward.io/)
 
 ## Quick start
@@ -14,8 +14,6 @@ Create a workflow at `.github/workflows/codeward-io-scan.yml` (minimal configura
 name: Codeward
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -27,7 +25,7 @@ jobs:
       pull-requests: write    # comment on PRs
       issues: write           # (optional) create/update issues
     steps:
-      - uses: codeward-io/scan@v0.0.1
+      - uses: codeward-io/scan@v0.1.0
 ```
 
 The action will:
@@ -51,7 +49,7 @@ All inputs have sane defaults; override only when needed.
 Example with explicit inputs:
 
 ```yaml
-- uses: codeward-io/scan@v0.0.1
+- uses: codeward-io/scan@v0.1.0
   with:
     event: pull_request
     repository: my-org/my-repo
@@ -254,8 +252,8 @@ PR example:
 Comprehensive documentation is available in the `docs/` directory:
 
 ### Getting Started
-- **[Introduction](https://docs.codeward.io/docs/intro/)** — Overview of Codeward, why use it, what it scans, and key features
-- **[Quick Start](https://docs.codeward.io/docs/quick-start/)** — Get up and running in 3 minutes with minimal configuration
+- **[Introduction](https://docs.codeward.io/docs/intro)** — Overview of Codeward, why use it, what it scans, and key features
+- **[Quick Start](https://docs.codeward.io/docs/quick-start)** — Get up and running in 3 minutes with minimal configuration
 - **[GitHub Actions Installation](https://docs.codeward.io/docs/installation/github-actions)** — Detailed GitHub Actions setup and integration
 - **[Docker Installation](https://docs.codeward.io/docs/installation/docker)** — Run Codeward with Docker for local or CI/CD use
 
@@ -263,6 +261,7 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Configuration](https://docs.codeward.io/docs/configuration)** — Complete reference for `.codeward.json` config file, global settings, and policy structure
 - **[Policies](https://docs.codeward.io/docs/policies)** — All policy types explained: vulnerability, license, package, validation, and PR validation with examples and field references
 - **[Outputs](https://docs.codeward.io/docs/outputs)** — Configure formats (markdown, HTML, JSON), destinations (PR comments, issues, files), templates, grouping, and combining outputs
+- **[Examples](https://docs.codeward.io/docs/examples)** — Real-world configuration examples including ignore rules, environment variables, and logging
 - **[Troubleshooting](https://docs.codeward.io/docs/troubleshooting)** — Common issues, environment variables, performance tips, and security notes
 
 Narrative Kernel
