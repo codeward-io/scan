@@ -48,15 +48,13 @@ runs:
       shell: bash
       run: |
         docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
-        docker pull ghcr.io/codeward-io/scan:latest
+        docker pull ghcr.io/codeward-io/scan:v0.1.0
   
     - name: Create local storage
       shell: bash
       run: |
-        echo ${{ inputs.event }}
         mkdir -p results
         mkdir -p cache
-        echo ${UID}
 
     - name: Run scanner with branch
       if: ${{ inputs.event == 'pull_request' }}
@@ -66,15 +64,14 @@ runs:
         -v ${PWD}/main:/main:rw \
         -v ${PWD}/branch:/branch:rw \
         -v ${PWD}/results:/results:rw \
-        -v ${PWD}/cache:/.cache:rw \
+        -v ${PWD}/cache:/tmp/.cache:rw \
         --user ${UID} \
         -e CODEWARD_GITHUB_TOKEN=${{ inputs.token }} \
         -e CODEWARD_GITHUB_OWNER=${{ github.repository_owner }} \
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
         -e CODEWARD_GITHUB_PR_NUMBER=${{ inputs.pr_number }} \
-        -e CODEWARD_CI_EVENT="pr" \
-        -e CODEWARD_CI=true \
-        ghcr.io/codeward-io/scan:latest
+        -e CODEWARD_MODE="diff" \
+        ghcr.io/codeward-io/scan:v0.1.0
 
     - name: Run scanner without branch
       if: ${{ inputs.event != 'pull_request' }}
@@ -83,11 +80,10 @@ runs:
         docker run --rm --name codeward-scan \
         -v ${PWD}/main:/main:rw \
         -v ${PWD}/results:/results:rw \
-        -v ${PWD}/cache:/.cache:rw \
+        -v ${PWD}/cache:/tmp/.cache:rw \
         --user ${UID} \
         -e CODEWARD_GITHUB_TOKEN=${{ inputs.token }} \
         -e CODEWARD_GITHUB_OWNER=${{ github.repository_owner }} \
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
-        -e CODEWARD_CI_EVENT="main" \
-        -e CODEWARD_CI=true \
-        ghcr.io/codeward-io/scan:latest
+        -e CODEWARD_MODE="main" \
+        ghcr.io/codeward-io/scan:v0.1.0
