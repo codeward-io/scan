@@ -3,7 +3,7 @@
 Scan your repository for policy, license, vulnerability, and validation issues before merge. Codeward provides diff-aware scanning (focus only on what changed) to govern AI-assisted and human code changes with transparent, deterministic outputs (Markdown / HTML / JSON).
 
 - **Image**: `ghcr.io/codeward-io/scan:latest`
-- **Action**: `codeward-io/scan@v0.1.0` (pin to a release)
+- **Action**: `codeward-io/scan@v0.2.0` (pin to a release)
 - **Documentation**: [https://docs.codeward.io/](https://docs.codeward.io/)
 
 ## Quick start
@@ -20,12 +20,12 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: read          # checkout
-      packages: read          # pull GHCR image
-      pull-requests: write    # comment on PRs
-      issues: write           # (optional) create/update issues
+      contents: read
+      packages: read
+      pull-requests: write
+      issues: write
     steps:
-      - uses: codeward-io/scan@v0.1.0
+      - uses: codeward-io/scan@v0.2.0
 ```
 
 The action will:
@@ -49,7 +49,7 @@ All inputs have sane defaults; override only when needed.
 Example with explicit inputs:
 
 ```yaml
-- uses: codeward-io/scan@v0.1.0
+- uses: codeward-io/scan@v0.2.0
   with:
     event: pull_request
     repository: my-org/my-repo
@@ -91,9 +91,11 @@ This minimal config will:
 
 - **Environment Variables**: Centralized `CODEWARD_*` variable management with config file overrides
 - **Logging**: Structured, component-based logging with multiple formats and verbosity levels
-- **Ignore Rules**: Global and policy-level ignores for suppressing known issues and false positives
-- **Multiple Policies**: Separate policies for vulnerabilities, licenses, packages, and validations
+- **Ignore Rules**: Global and policy-level ignores with optional expiration dates
+- **Multiple Policies**: Separate policies for vulnerabilities, licenses, packages, validations, and PRs
 - **Flexible Actions**: `info`, `warn`, or `block` for each change category (`new`, `existing`, `changed`, `removed`)
+- **Advanced Validation**: Support for array wildcards (`*`) and custom output reasons
+- **Conditional Logic**: `implies` operator for "If X then Y" policy logic
 
 ## Documentation
 
@@ -160,7 +162,8 @@ Complete documentation is available at **[https://docs.codeward.io/](https://doc
       {
         "name": "Ignore test directories",
         "description": "Skip findings from test code",
-        "paths": ["test/**", "**/test/**", "**/*_test.go"]
+        "paths": ["test/**", "**/test/**", "**/*_test.go"],
+        "expires": "2026-12-31"
       }
     ]
   }
@@ -174,7 +177,7 @@ More examples: [https://docs.codeward.io/docs/examples](https://docs.codeward.io
 Configure Codeward using environment variables:
 
 ```yaml
-- uses: codeward-io/scan@v0.1.0
+- uses: codeward-io/scan@v0.2.0
   env:
     CODEWARD_LOG_LEVEL: debug
     CODEWARD_LOG_SUMMARY: detailed
@@ -200,7 +203,7 @@ See [LICENSE](LICENSE) file for details.
 
 
 ```yaml
-- uses: codeward-io/scan@v0.1.0
+- uses: codeward-io/scan@v0.2.0
   with:
     event: ${{ github.event_name }}
     repository: ${{ github.repository }}
