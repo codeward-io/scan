@@ -48,7 +48,7 @@ runs:
       shell: bash
       run: |
         docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
-        docker pull ghcr.io/codeward-io/scan:v0.1.0
+        docker pull ghcr.io/codeward-io/scan:v0.2.0
   
     - name: Create local storage
       shell: bash
@@ -71,7 +71,7 @@ runs:
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
         -e CODEWARD_GITHUB_PR_NUMBER=${{ inputs.pr_number }} \
         -e CODEWARD_MODE="diff" \
-        ghcr.io/codeward-io/scan:v0.1.0
+        ghcr.io/codeward-io/scan:v0.2.0
 
     - name: Run scanner without branch
       if: ${{ inputs.event != 'pull_request' }}
@@ -86,4 +86,4 @@ runs:
         -e CODEWARD_GITHUB_OWNER=${{ github.repository_owner }} \
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
         -e CODEWARD_MODE="main" \
-        ghcr.io/codeward-io/scan:v0.1.0
+        ghcr.io/codeward-io/scan:v0.2.0
