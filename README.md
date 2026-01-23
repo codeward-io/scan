@@ -20,10 +20,10 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: read
-      pull-requests: write
-      issues: write
+      contents: read          # checkout
+      packages: read          # pull GHCR image
+      pull-requests: write    # comment on PRs
+      issues: write           # (optional) create/update issues
     steps:
       - uses: codeward-io/scan@v0.2.0
 ```
