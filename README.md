@@ -95,16 +95,50 @@ vulnerability:
 
 ### Key Features
 
-- **YAML & JSON config** — Auto-discovered `.codeward.yaml` / `.codeward.yml` / `.codeward.json`
-- **CVSS scoring** — Filter vulnerabilities by `CVSSScore` (numeric ranges) and `CVSSVector`
-- **Multi-source license resolution** — SPDX, package metadata, registry lookups with disk cache
-- **File validation** — JSON, YAML, TOML, env, properties files with auto-detection
-- **Line-level scanning** — Scan individual lines for secrets, patterns, and per-line policy enforcement
-- **Cross-file references** — Validate values stay consistent across files (`ref_path`, `ref_key`)
-- **Custom webhooks** — Send results to any HTTP endpoint (Slack, JIRA, PagerDuty, etc.)
-- **Conditional logic** — `implies` operator for "If X then Y" policies
+#### Security Scanning
+- **Vulnerability detection** — CVE-based scanning with severity levels (CRITICAL/HIGH/MEDIUM/LOW) and CVSS scoring
+- **License detection** — Multi-source resolution (SPDX, package metadata, registry lookups, GitHub API) with persistent disk cache
+- **Package analysis** — Dependency enumeration with direct/indirect tracking and parent/child relationships
+- **17+ lockfile parsers** — Node.js, Python, Ruby, Go, Rust, PHP, .NET, Dart, Swift, Java, Elixir, C/C++ — no external dependencies
+- **Direct Trivy DB queries** — OCI-based vulnerability database with automatic download, caching, and air-gapped support
+
+#### Policy Engine
+- **5 policy types** — Vulnerability, license, package, file validation, and PR validation
 - **Flexible actions** — `info`, `warn`, or `block` per change category (`new`, `existing`, `changed`, `removed`)
-- **Global & policy-level ignores** — With optional expiration dates
+- **Rich rule types** — `eq`, `ne`, `lt`, `gt`, `contains`, `regex`, `in`, `exists`, `last_match`, and more
+- **Conditional logic** — `implies` operator for "If X then Y" policies
+- **Global & policy-level ignores** — With optional expiration dates and author tracking
+
+#### Diff Detection
+- **Diff-aware scanning** — Compare base vs head to surface only what changed
+- **Change categories** — New, removed, existing, and changed items with per-category actions
+- **Multi-source diff** — Track changes per source path with glob pattern filtering
+
+#### File & PR Validation
+- **File validation** — JSON, YAML, TOML, env, properties files with auto-detection
+- **Line-level scanning** — Scan individual lines for secrets/patterns with `LineNumber` and `MatchedContent` output
+- **Cross-file references** — Validate values stay consistent across files (`ref_path`, `ref_key`, `ref_type`)
+- **Array wildcards** — `spec.containers.*.image` with configurable match semantics (`all`, `any`, `none`)
+- **Last match rules** — `last_match`/`not_last_match` with `line_filter` for multi-stage Dockerfile analysis
+- **Per-line implies** — Combine `implies` + `scan: lines` for per-line "if X then Y" enforcement
+- **PR metadata validation** — Title, body, labels, reviewers, file counts, changed files, and more
+- **Conditional validation** — Check file content only when the file exists (implies + exists trigger)
+
+#### Output & Reporting
+- **Multiple destinations** — PR comments, GitHub issues, files, stdout/stderr, webhooks
+- **Multiple formats** — Markdown, HTML, JSON with table/text/combined templates
+- **Custom webhooks** — Send results to any HTTP endpoint (Slack, JIRA, PagerDuty, etc.) with template variables and secrets passthrough
+- **Custom templates** — Load Go templates from filesystem for full output control
+- **GroupBy & collapse** — Group results by field, collapse in PR comments
+
+#### Configuration
+- **YAML & JSON config** — Auto-discovered `.codeward.yaml` / `.codeward.yml` / `.codeward.json`
+- **Strict validation** — Unknown fields rejected, enum validation, detailed error paths
+- **Graceful degradation** — Invalid policies skipped with warnings, valid policies continue
+- **CLI, env vars, and config files** — Hierarchical configuration with clear priority order
+
+#### Ready-Made Profiles
+Browse the **[Codeward Registry](https://github.com/codeward-io/registry)** for ready-to-use policy profiles covering security, infrastructure, language-specific checks, compliance, secrets detection, and more. Drop a profile into your repo and customize as needed.
 
 ## Examples
 
@@ -168,7 +202,6 @@ More examples: [docs.codeward.io/docs/examples](https://docs.codeward.io/docs/ex
 | `CODEWARD_LOG_FORMAT` | Output format: `text`, `json` |
 | `CODEWARD_LOG_SUMMARY` | Summary verbosity: `minimal`, `standard`, `detailed` |
 | `CODEWARD_CACHE_DIR` | Cache directory path |
-| `TRIVY_SKIP_DB_UPDATE` | Skip Trivy DB download (air-gapped mode) |
 | `CODEWARD_GITHUB_TOKEN` | GitHub token for API access |
 
 See the [CLI & Environment Variables](https://docs.codeward.io/docs/cli-and-env/) reference for the complete list.
@@ -226,10 +259,12 @@ See [Troubleshooting](https://docs.codeward.io/docs/troubleshooting/) for more s
 - [Kubernetes](https://docs.codeward.io/docs/installation/kubernetes/) — Job and CronJob setup
 - [FAQ](https://docs.codeward.io/docs/faq/) — Common questions
 - [Troubleshooting](https://docs.codeward.io/docs/troubleshooting/) — Common issues and solutions
+- [Registry](https://github.com/codeward-io/registry) — Ready-to-use policy profiles for common use cases
 
 ## Support
 
 - **Documentation**: [docs.codeward.io](https://docs.codeward.io/)
+- **Registry**: [github.com/codeward-io/registry](https://github.com/codeward-io/registry)
 - **Issues**: [GitHub Issues](https://github.com/codeward-io/scan/issues)
 - **Website**: [codeward.io](https://codeward.io/)
 
