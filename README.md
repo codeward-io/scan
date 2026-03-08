@@ -4,6 +4,7 @@ Scan your repository for policy, license, vulnerability, and validation issues b
 
 - **Image**: `ghcr.io/codeward-io/scan:v0.3.0`
 - **Action**: `codeward-io/scan@v0.3.0` (pin to a release)
+- **Binaries**: [Download standalone binaries](https://github.com/codeward-io/scan/releases) for Linux, macOS, and Windows
 - **Documentation**: [https://docs.codeward.io/](https://docs.codeward.io/)
 
 ## Quick Start
@@ -225,6 +226,26 @@ For richer license and vulnerability detection, install dependencies before scan
 
 See [GitHub Actions Installation](https://docs.codeward.io/docs/installation/github-actions/) for the full example.
 
+## Standalone Binaries
+
+Pre-built static binaries are available for systems where Docker isn't available or desired:
+
+| OS | Architecture | Binary |
+|----|-------------|--------|
+| Linux | amd64, arm64 | `codeward-scan-linux-amd64` |
+| macOS | amd64 (Intel), arm64 (Apple Silicon) | `codeward-scan-darwin-arm64` |
+| Windows | amd64, arm64 | `codeward-scan-windows-amd64.exe` |
+
+```bash
+# Download, make executable, and run
+curl -L -o codeward-scan \
+  https://github.com/codeward-io/scan/releases/download/v0.3.0/codeward-scan-linux-amd64
+chmod +x codeward-scan
+./codeward-scan --config .codeward.yaml
+```
+
+Binaries are self-contained (static, `CGO_ENABLED=0`) with no runtime dependencies. Works with any CI system — see the [Standalone Binary docs](https://docs.codeward.io/docs/installation/standalone/) for GitLab CI and Azure Pipelines examples.
+
 ## Requirements
 
 - **Runner**: `ubuntu-latest` (or self-hosted with Docker)
@@ -256,6 +277,7 @@ See [Troubleshooting](https://docs.codeward.io/docs/troubleshooting/) for more s
 - [Examples](https://docs.codeward.io/docs/examples/) — Real-world configuration examples
 - [GitHub Actions](https://docs.codeward.io/docs/installation/github-actions/) — Detailed GitHub Actions setup
 - [Docker](https://docs.codeward.io/docs/installation/docker/) — Docker usage for any CI
+- [Standalone Binary](https://docs.codeward.io/docs/installation/standalone/) — No Docker required, runs on Linux/macOS/Windows
 - [Kubernetes](https://docs.codeward.io/docs/installation/kubernetes/) — Job and CronJob setup
 - [FAQ](https://docs.codeward.io/docs/faq/) — Common questions
 - [Troubleshooting](https://docs.codeward.io/docs/troubleshooting/) — Common issues and solutions
