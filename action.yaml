@@ -26,6 +26,11 @@ inputs:
     required: true
     type: string
     default: ${{ github.token }}
+  webhook_secrets:
+    description: 'Multiline KEY=VALUE pairs passed as CODEWARD_WEBHOOK_SECRETS for custom webhook templates'
+    required: false
+    type: string
+    default: ''
 runs:
   using: composite
   steps:
@@ -48,7 +53,7 @@ runs:
       shell: bash
       run: |
         docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
-        docker pull ghcr.io/codeward-io/scan:v0.2.0
+        docker pull ghcr.io/codeward-io/scan:v0.3.0
   
     - name: Create local storage
       shell: bash
@@ -71,7 +76,8 @@ runs:
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
         -e CODEWARD_GITHUB_PR_NUMBER=${{ inputs.pr_number }} \
         -e CODEWARD_MODE="diff" \
-        ghcr.io/codeward-io/scan:v0.2.0
+        -e CODEWARD_WEBHOOK_SECRETS="${{ inputs.webhook_secrets }}" \
+        ghcr.io/codeward-io/scan:v0.3.0
 
     - name: Run scanner without branch
       if: ${{ inputs.event != 'pull_request' }}
@@ -86,4 +92,5 @@ runs:
         -e CODEWARD_GITHUB_OWNER=${{ github.repository_owner }} \
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
         -e CODEWARD_MODE="main" \
-        ghcr.io/codeward-io/scan:v0.2.0
+        -e CODEWARD_WEBHOOK_SECRETS="${{ inputs.webhook_secrets }}" \
+        ghcr.io/codeward-io/scan:v0.3.0
