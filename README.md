@@ -2,8 +2,8 @@
 
 Scan your repository for policy, license, vulnerability, and validation issues before merge. Codeward provides diff-aware scanning (focus only on what changed) to govern AI-assisted and human code changes with transparent, deterministic outputs (Markdown / HTML / JSON).
 
-- **Image**: `ghcr.io/codeward-io/scan:v0.3.0`
-- **Action**: `codeward-io/scan@v0.3.0` (pin to a release)
+- **Image**: `ghcr.io/codeward-io/scan:v0.4.0`
+- **Action**: `codeward-io/scan@v0.4.0` (pin to a release)
 - **Binaries**: [Download standalone binaries](https://github.com/codeward-io/scan/releases) for Linux, macOS, and Windows
 - **Documentation**: [https://docs.codeward.io/](https://docs.codeward.io/)
 
@@ -26,7 +26,7 @@ jobs:
       pull-requests: write    # comment on PRs
       issues: write           # (optional) create/update issues
     steps:
-      - uses: codeward-io/scan@v0.3.0
+      - uses: codeward-io/scan@v0.4.0
 ```
 
 The action will:
@@ -49,13 +49,76 @@ All inputs have sane defaults; override only when needed.
 | `pr_number` | No | `${{ github.event.number }}` | Pull request number |
 | `token` | Yes | `${{ github.token }}` | GitHub token |
 | `webhook_secrets` | No | — | Multiline `KEY=VALUE` pairs for custom webhook templates |
+| `intel_token` | No | — | Codeward Intel API key (`query:batch` scope). Without one the scanner uses signed snapshots; with one it queries the live API |
+| `intel_mode` | No | auto | `api`, `download`, `local` or `disabled`. Auto selects `api` when `intel_token` is set, `download` otherwise |
+| `intel_api` | No | `https://intel.codeward.io` | Intel API base URL. Override only for self-hosted Intel |
+| `intel_required` | No | `true` | Fail the scan when no vulnerability data could be obtained, rather than reporting clean |
+| `contribute` | No | `false` | Send scan discoveries back to Intel. Off by default — it includes your package names |
+| `runtime` | No | `docker` | `docker` or `binary`. Binary mode needs no Docker daemon and no registry login |
+| `version` | No | `v0.4.0` | Scanner version to download in binary mode. Ignored for `docker` |
+
+### Outputs
+
+| Output | Description |
+|--------|-------------|
+| `results_path` | Directory containing the scan result JSON files |
+
+### Binary Mode
+
+By default the action runs the scanner as a container. Set `runtime: binary` to download and run the
+release binary instead — useful where Docker is unavailable or a registry login is undesirable:
+
+```yaml
+- uses: codeward-io/scan@v0.4.0
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    runtime: binary
+```
+
+The binary is resolved for the runner's OS and architecture, **verified against the release's
+`SHA256SUMS` before it is made executable**, and cached by version+os+arch so repeat runs skip the
+download.
+
+Supported on Linux and macOS runners, x64 and arm64. Windows runners resolve a `.exe` asset and the
+steps use `shell: bash`, but that path has not been exercised on `windows-latest` — treat it as
+untested rather than supported.
+
+### Intel Data Source
+
+The scanner gets its vulnerability data from [Codeward Intel](https://intel.codeward.io). Two paths:
+
+- **Snapshots (default, no key needed).** Signed per-ecosystem database segments are downloaded and
+  queried locally. The action caches them between runs, so only the first scan on a runner pays the
+  full download (~105 MB compressed for an npm project). Manifest signatures are verified against a
+  key compiled into the scanner; a bad or missing signature fails the scan.
+- **Live API (`intel_token`).** Queries Intel directly for the freshest data — EPSS and KEV movement
+  within the day, unknown-package reporting. Requires a hand-issued key with the `query:batch` scope.
+
+```yaml
+- uses: codeward-io/scan@v0.4.0
+  with:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    intel_token: ${{ secrets.CODEWARD_INTEL_TOKEN }}
+```
+
+If a scan cannot obtain vulnerability data at all — outage, expired key, blocked egress — it fails
+with `vulnerability data unavailable` instead of reporting a clean repository. Set
+`intel_required: 'false'` if you would rather have a partial scan than a red build.
+
+### Telemetry
+
+`contribute` is off by default. When enabled, the scanner sends Intel the ecosystem, **package
+name**, version, dev flag, resolved licence and confirmed fix versions for each package it sees,
+tagged with an anonymous install id (a random UUID — no machine or user data). For a private
+repository that means internal package names leaving your network, which is why you have to ask for
+it. The scanner logs one line naming exactly what it sends on every run where it is on.
 
 ### Webhook Secrets
 
 Pass sensitive values for [custom webhooks](https://docs.codeward.io/docs/outputs/#custom-webhooks) via the `webhook_secrets` input. Each line is a `KEY=VALUE` pair exported as an environment variable available in webhook templates.
 
 ```yaml
-- uses: codeward-io/scan@v0.3.0
+- uses: codeward-io/scan@v0.4.0
   with:
     token: ${{ secrets.GITHUB_TOKEN }}
     webhook_secrets: |
@@ -100,8 +163,8 @@ vulnerability:
 - **Vulnerability detection** — CVE-based scanning with severity levels (CRITICAL/HIGH/MEDIUM/LOW) and CVSS scoring
 - **License detection** — Multi-source resolution (SPDX, package metadata, registry lookups, GitHub API) with persistent disk cache
 - **Package analysis** — Dependency enumeration with direct/indirect tracking and parent/child relationships
-- **17+ lockfile parsers** — Node.js, Python, Ruby, Go, Rust, PHP, .NET, Dart, Swift, Java, Elixir, C/C++ — no external dependencies
-- **Direct Trivy DB queries** — OCI-based vulnerability database with automatic download, caching, and air-gapped support
+- **19 lockfile formats across 12 ecosystems** — Node.js, Python, Ruby, Go, Rust, PHP, .NET, Dart, Swift, Java, Elixir, C/C++ — no external dependencies
+- **Codeward Intel as the vulnerability source** — signed, per-ecosystem snapshots by default (no key required), or live API queries with a key. Richer than a raw CVE feed: EPSS, CISA KEV, exploit maturity, CVSS v4, OWASP categories, licence compatibility and package risk scoring. Browsable at https://intel.codeward.io
 
 #### Policy Engine
 - **5 policy types** — Vulnerability, license, package, file validation, and PR validation
@@ -191,7 +254,7 @@ More examples: [docs.codeward.io/docs/examples](https://docs.codeward.io/docs/ex
 ## Environment Variables
 
 ```yaml
-- uses: codeward-io/scan@v0.3.0
+- uses: codeward-io/scan@v0.4.0
   env:
     CODEWARD_LOG_LEVEL: debug
     CODEWARD_LOG_SUMMARY: detailed
@@ -239,7 +302,7 @@ Pre-built static binaries are available for systems where Docker isn't available
 ```bash
 # Download, make executable, and run
 curl -L -o codeward-scan \
-  https://github.com/codeward-io/scan/releases/download/v0.3.0/codeward-scan-linux-amd64
+  https://github.com/codeward-io/scan/releases/download/v0.4.0/codeward-scan-linux-amd64
 chmod +x codeward-scan
 ./codeward-scan --config .codeward.yaml
 ```

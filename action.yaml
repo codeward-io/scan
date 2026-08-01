@@ -1,5 +1,8 @@
 name: Codeward-io Scan
 description: Scan action by codeward-io
+branding:
+  icon: shield
+  color: blue
 inputs:
   event:
     description: 'Event name'
@@ -31,6 +34,61 @@ inputs:
     required: false
     type: string
     default: ''
+  intel_token:
+    description: >-
+      Codeward Intel API key with the `query:batch` scope. Optional: without one the
+      scanner runs on signed snapshots, which is the default path. Supplying a key
+      switches it to live API queries. Pass a secret, never a literal.
+    required: false
+    type: string
+    default: ''
+  intel_mode:
+    description: >-
+      Intel data source: api, download, local or disabled. Leave empty to select
+      automatically — api when intel_token is set, download otherwise.
+    required: false
+    type: string
+    default: ''
+  intel_api:
+    description: 'Intel API base URL. Override only for self-hosted Intel.'
+    required: false
+    type: string
+    default: ''
+  intel_required:
+    description: >-
+      Fail the scan when no vulnerability data could be obtained, instead of
+      reporting a clean result. Leave true unless you would rather have a
+      partial scan than a red build.
+    required: false
+    type: string
+    default: 'true'
+  contribute:
+    description: >-
+      Send scan discoveries back to Intel to improve the public dataset. Off by
+      default: it includes the name of every package in your lockfiles, which for
+      a private repository means internal package names leaving your network.
+    required: false
+    type: string
+    default: 'false'
+  runtime:
+    description: >-
+      How to run the scanner: `docker` (default) or `binary`. Binary mode needs
+      no Docker daemon and no registry login, so it works on macOS and Windows
+      runners and on locked-down self-hosted fleets.
+    required: false
+    type: string
+    default: 'docker'
+  version:
+    description: >-
+      Scanner version to run in binary mode. Defaults to the action version.
+      Ignored when runtime is `docker`.
+    required: false
+    type: string
+    default: 'v0.4.0'
+outputs:
+  results_path:
+    description: 'Directory containing the scan result JSON files'
+    value: ${{ steps.paths.outputs.results }}
 runs:
   using: composite
   steps:
@@ -49,20 +107,122 @@ runs:
         repository: ${{ inputs.repository }}
         path: main
 
+    - name: Validate runtime
+      shell: bash
+      run: |
+        case "${{ inputs.runtime }}" in
+          docker|binary) ;;
+          *)
+            echo "::error::Unknown runtime '${{ inputs.runtime }}'. Use 'docker' or 'binary'."
+            exit 1
+            ;;
+        esac
+
     - name: Pull Codeward scan image
+      if: ${{ inputs.runtime == 'docker' }}
       shell: bash
       run: |
         docker login ghcr.io -u ${{ github.actor }} -p ${{ inputs.token }}
-        docker pull ghcr.io/codeward-io/scan:v0.3.0
-  
+        docker pull ghcr.io/codeward-io/scan:v0.4.0
+
     - name: Create local storage
+      id: paths
       shell: bash
       run: |
         mkdir -p results
         mkdir -p cache
+        echo "results=${PWD}/results" >> "$GITHUB_OUTPUT"
 
-    - name: Run scanner with branch
-      if: ${{ inputs.event == 'pull_request' }}
+    # --- Binary mode ---------------------------------------------------------
+    # Runs the scanner without a Docker daemon. Cached by version+os+arch so
+    # repeat runs skip the download entirely.
+    - name: Resolve binary asset
+      if: ${{ inputs.runtime == 'binary' }}
+      id: asset
+      shell: bash
+      run: |
+        case "${{ runner.os }}" in
+          Linux)   os=linux ;;
+          macOS)   os=darwin ;;
+          Windows) os=windows ;;
+          *) echo "::error::Unsupported runner OS '${{ runner.os }}' for binary mode."; exit 1 ;;
+        esac
+        case "${{ runner.arch }}" in
+          X64)   arch=amd64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "::error::Unsupported runner arch '${{ runner.arch }}' for binary mode."; exit 1 ;;
+        esac
+        ext=""
+        if [ "$os" = "windows" ]; then ext=".exe"; fi
+
+        echo "name=codeward-scan-${os}-${arch}${ext}" >> "$GITHUB_OUTPUT"
+        echo "dir=${RUNNER_TEMP}/codeward-bin" >> "$GITHUB_OUTPUT"
+        echo "path=${RUNNER_TEMP}/codeward-bin/codeward-scan${ext}" >> "$GITHUB_OUTPUT"
+
+    - name: Restore scanner binary
+      if: ${{ inputs.runtime == 'binary' }}
+      id: bincache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.asset.outputs.dir }}
+        key: codeward-scan-${{ inputs.version }}-${{ steps.asset.outputs.name }}
+
+    - name: Download scanner binary
+      if: ${{ inputs.runtime == 'binary' && steps.bincache.outputs.cache-hit != 'true' }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        ASSET: ${{ steps.asset.outputs.name }}
+        DEST_DIR: ${{ steps.asset.outputs.dir }}
+        DEST: ${{ steps.asset.outputs.path }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$DEST_DIR"
+        base="https://github.com/codeward-io/scan/releases/download/${VERSION}"
+
+        curl -fsSL --retry 3 -o "$DEST" "${base}/${ASSET}"
+        curl -fsSL --retry 3 -o "${DEST_DIR}/SHA256SUMS" "${base}/SHA256SUMS"
+
+        # Verify before anything is made executable. Downloading a security
+        # scanner over the network and running it unverified would undo the
+        # point of the tool.
+        expected="$(grep " ${ASSET}\$" "${DEST_DIR}/SHA256SUMS" | awk '{print $1}')"
+        if [ -z "$expected" ]; then
+          echo "::error::${ASSET} is not listed in SHA256SUMS for ${VERSION}."
+          exit 1
+        fi
+        if command -v sha256sum >/dev/null 2>&1; then
+          actual="$(sha256sum "$DEST" | awk '{print $1}')"
+        else
+          actual="$(shasum -a 256 "$DEST" | awk '{print $1}')"
+        fi
+        if [ "$actual" != "$expected" ]; then
+          echo "::error::Checksum mismatch for ${ASSET}: expected ${expected}, got ${actual}."
+          exit 1
+        fi
+        echo "Verified ${ASSET} (${actual})"
+
+    - name: Make binary executable
+      if: ${{ inputs.runtime == 'binary' }}
+      shell: bash
+      run: chmod +x "${{ steps.asset.outputs.path }}"
+
+    # In snapshot mode — the default since v0.4.0 — a cold cache costs a full
+    # segment download on every run (~105 MB compressed for an npm project).
+    # The key is unique per run so the cache is always written back, while
+    # restore-keys means each run starts from the most recent previous cache
+    # and only fetches what changed since.
+    - name: Restore Intel snapshot cache
+      uses: actions/cache@v4
+      with:
+        path: cache
+        key: codeward-intel-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: |
+          codeward-intel-${{ runner.os }}-
+
+    - name: Run scanner with branch (docker)
+      if: ${{ inputs.runtime == 'docker' && inputs.event == 'pull_request' }}
       shell: bash
       run: |
         docker run --rm --name codeward-scan \
@@ -77,10 +237,15 @@ runs:
         -e CODEWARD_GITHUB_PR_NUMBER=${{ inputs.pr_number }} \
         -e CODEWARD_MODE="diff" \
         -e CODEWARD_WEBHOOK_SECRETS="${{ inputs.webhook_secrets }}" \
-        ghcr.io/codeward-io/scan:v0.3.0
+        -e CODEWARD_INTEL_TOKEN="${{ inputs.intel_token }}" \
+        -e CODEWARD_INTEL_MODE="${{ inputs.intel_mode }}" \
+        -e CODEWARD_INTEL_API="${{ inputs.intel_api }}" \
+        -e CODEWARD_INTEL_REQUIRED="${{ inputs.intel_required }}" \
+        -e CODEWARD_CONTRIBUTE="${{ inputs.contribute }}" \
+        ghcr.io/codeward-io/scan:v0.4.0
 
-    - name: Run scanner without branch
-      if: ${{ inputs.event != 'pull_request' }}
+    - name: Run scanner without branch (docker)
+      if: ${{ inputs.runtime == 'docker' && inputs.event != 'pull_request' }}
       shell: bash
       run: |
         docker run --rm --name codeward-scan \
@@ -93,4 +258,53 @@ runs:
         -e CODEWARD_GITHUB_REPOSITORY=${{ github.event.repository.name }} \
         -e CODEWARD_MODE="main" \
         -e CODEWARD_WEBHOOK_SECRETS="${{ inputs.webhook_secrets }}" \
-        ghcr.io/codeward-io/scan:v0.3.0
+        -e CODEWARD_INTEL_TOKEN="${{ inputs.intel_token }}" \
+        -e CODEWARD_INTEL_MODE="${{ inputs.intel_mode }}" \
+        -e CODEWARD_INTEL_API="${{ inputs.intel_api }}" \
+        -e CODEWARD_INTEL_REQUIRED="${{ inputs.intel_required }}" \
+        -e CODEWARD_CONTRIBUTE="${{ inputs.contribute }}" \
+        ghcr.io/codeward-io/scan:v0.4.0
+
+    # Binary mode uses real filesystem paths rather than the container's /main
+    # and /branch bind mounts, so the scan roots are passed explicitly via
+    # CODEWARD_MAIN_PATH / CODEWARD_BRANCH_PATH. Without those the built-in CI
+    # config would send it looking for /main, which does not exist here.
+    - name: Run scanner with branch (binary)
+      if: ${{ inputs.runtime == 'binary' && inputs.event == 'pull_request' }}
+      shell: bash
+      env:
+        CODEWARD_GITHUB_TOKEN: ${{ inputs.token }}
+        CODEWARD_GITHUB_OWNER: ${{ github.repository_owner }}
+        CODEWARD_GITHUB_REPOSITORY: ${{ github.event.repository.name }}
+        CODEWARD_GITHUB_PR_NUMBER: ${{ inputs.pr_number }}
+        CODEWARD_MODE: diff
+        CODEWARD_WEBHOOK_SECRETS: ${{ inputs.webhook_secrets }}
+        CODEWARD_INTEL_TOKEN: ${{ inputs.intel_token }}
+        CODEWARD_INTEL_MODE: ${{ inputs.intel_mode }}
+        CODEWARD_INTEL_API: ${{ inputs.intel_api }}
+        CODEWARD_INTEL_REQUIRED: ${{ inputs.intel_required }}
+        CODEWARD_CONTRIBUTE: ${{ inputs.contribute }}
+        CODEWARD_CACHE_DIR: ${{ github.workspace }}/cache
+      run: |
+        CODEWARD_MAIN_PATH="${PWD}/main" \
+        CODEWARD_BRANCH_PATH="${PWD}/branch" \
+        "${{ steps.asset.outputs.path }}"
+
+    - name: Run scanner without branch (binary)
+      if: ${{ inputs.runtime == 'binary' && inputs.event != 'pull_request' }}
+      shell: bash
+      env:
+        CODEWARD_GITHUB_TOKEN: ${{ inputs.token }}
+        CODEWARD_GITHUB_OWNER: ${{ github.repository_owner }}
+        CODEWARD_GITHUB_REPOSITORY: ${{ github.event.repository.name }}
+        CODEWARD_MODE: main
+        CODEWARD_WEBHOOK_SECRETS: ${{ inputs.webhook_secrets }}
+        CODEWARD_INTEL_TOKEN: ${{ inputs.intel_token }}
+        CODEWARD_INTEL_MODE: ${{ inputs.intel_mode }}
+        CODEWARD_INTEL_API: ${{ inputs.intel_api }}
+        CODEWARD_INTEL_REQUIRED: ${{ inputs.intel_required }}
+        CODEWARD_CONTRIBUTE: ${{ inputs.contribute }}
+        CODEWARD_CACHE_DIR: ${{ github.workspace }}/cache
+      run: |
+        CODEWARD_MAIN_PATH="${PWD}/main" \
+        "${{ steps.asset.outputs.path }}"
