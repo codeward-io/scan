@@ -89,8 +89,8 @@ The scanner gets its vulnerability data from [Codeward Intel](https://intel.code
 
 - **Snapshots (default, no key needed).** Signed per-ecosystem database segments are downloaded and
   queried locally. The action caches them between runs, so only the first scan on a runner pays the
-  full download (~105 MB compressed for an npm project). Manifest signatures are verified against a
-  key compiled into the scanner; a bad or missing signature fails the scan.
+  full download (~76 MB compressed for an npm project, ~1.2 GB on disk). Manifest signatures are
+  verified against a key compiled into the scanner; a bad or missing signature fails the scan.
 - **Live API (`intel_token`).** Queries Intel directly for the freshest data — EPSS and KEV movement
   within the day, unknown-package reporting. Requires a hand-issued key with the `query:batch` scope.
 
