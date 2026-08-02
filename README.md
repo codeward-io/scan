@@ -53,7 +53,6 @@ All inputs have sane defaults; override only when needed.
 | `intel_mode` | No | auto | `api`, `download`, `local` or `disabled`. Auto selects `api` when `intel_token` is set, `download` otherwise |
 | `intel_api` | No | `https://intel.codeward.io` | Intel API base URL. Override only for self-hosted Intel |
 | `intel_required` | No | `true` | Fail the scan when no vulnerability data could be obtained, rather than reporting clean |
-| `contribute` | No | `false` | Send scan discoveries back to Intel. Off by default — it includes your package names |
 | `runtime` | No | `docker` | `docker` or `binary`. Binary mode needs no Docker daemon and no registry login |
 | `version` | No | `v0.4.0` | Scanner version to download in binary mode. Ignored for `docker` |
 
@@ -107,11 +106,9 @@ with `vulnerability data unavailable` instead of reporting a clean repository. S
 
 ### Telemetry
 
-`contribute` is off by default. When enabled, the scanner sends Intel the ecosystem, **package
-name**, version, dev flag, resolved licence and confirmed fix versions for each package it sees,
-tagged with an anonymous install id (a random UUID — no machine or user data). For a private
-repository that means internal package names leaving your network, which is why you have to ask for
-it. The scanner logs one line naming exactly what it sends on every run where it is on.
+The scanner sends no scan data back to Codeward. Its only outbound calls are fetching Intel snapshot
+segments (or querying the Intel API when `intel_token` is set), package-registry lookups to resolve
+licences, and your own webhook destinations. Your source code never leaves the runner.
 
 ### Webhook Secrets
 

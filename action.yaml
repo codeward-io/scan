@@ -62,14 +62,6 @@ inputs:
     required: false
     type: string
     default: 'true'
-  contribute:
-    description: >-
-      Send scan discoveries back to Intel to improve the public dataset. Off by
-      default: it includes the name of every package in your lockfiles, which for
-      a private repository means internal package names leaving your network.
-    required: false
-    type: string
-    default: 'false'
   runtime:
     description: >-
       How to run the scanner: `docker` (default) or `binary`. Binary mode needs
@@ -241,7 +233,6 @@ runs:
         -e CODEWARD_INTEL_MODE="${{ inputs.intel_mode }}" \
         -e CODEWARD_INTEL_API="${{ inputs.intel_api }}" \
         -e CODEWARD_INTEL_REQUIRED="${{ inputs.intel_required }}" \
-        -e CODEWARD_CONTRIBUTE="${{ inputs.contribute }}" \
         ghcr.io/codeward-io/scan:v0.4.0
 
     - name: Run scanner without branch (docker)
@@ -262,7 +253,6 @@ runs:
         -e CODEWARD_INTEL_MODE="${{ inputs.intel_mode }}" \
         -e CODEWARD_INTEL_API="${{ inputs.intel_api }}" \
         -e CODEWARD_INTEL_REQUIRED="${{ inputs.intel_required }}" \
-        -e CODEWARD_CONTRIBUTE="${{ inputs.contribute }}" \
         ghcr.io/codeward-io/scan:v0.4.0
 
     # Binary mode uses real filesystem paths rather than the container's /main
@@ -283,7 +273,6 @@ runs:
         CODEWARD_INTEL_MODE: ${{ inputs.intel_mode }}
         CODEWARD_INTEL_API: ${{ inputs.intel_api }}
         CODEWARD_INTEL_REQUIRED: ${{ inputs.intel_required }}
-        CODEWARD_CONTRIBUTE: ${{ inputs.contribute }}
         CODEWARD_CACHE_DIR: ${{ github.workspace }}/cache
       run: |
         CODEWARD_MAIN_PATH="${PWD}/main" \
@@ -303,7 +292,6 @@ runs:
         CODEWARD_INTEL_MODE: ${{ inputs.intel_mode }}
         CODEWARD_INTEL_API: ${{ inputs.intel_api }}
         CODEWARD_INTEL_REQUIRED: ${{ inputs.intel_required }}
-        CODEWARD_CONTRIBUTE: ${{ inputs.contribute }}
         CODEWARD_CACHE_DIR: ${{ github.workspace }}/cache
       run: |
         CODEWARD_MAIN_PATH="${PWD}/main" \
